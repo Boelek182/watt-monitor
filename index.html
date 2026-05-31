@@ -126,8 +126,8 @@ header {
 }
 .kpi-card:hover { transform: translateY(-2px); border-color: rgba(0,212,255,0.2); }
 .kpi-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 8px; }
-.kpi-value { font-family: 'Space Mono', monospace; font-size: 1.7rem; font-weight: 700; color: var(--text); line-height: 1; margin-bottom: 6px; }
-.kpi-unit { font-size: 0.8rem; color: var(--text-muted); }
+.kpi-value { font-family: 'Space Mono', monospace; font-size: 1.9rem; font-weight: 700; color: var(--text); line-height: 1.2; margin-bottom: 6px; }
+.kpi-unit { font-size: 0.85rem; color: var(--text-muted); }
 .kpi-delta { font-size: 0.75rem; font-family: 'Space Mono', monospace; margin-top: 6px; display: flex; align-items: center; gap: 4px; }
 .kpi-delta.up { color: var(--red); }
 .kpi-delta.down { color: var(--green); }
@@ -367,6 +367,28 @@ canvas { max-height: 240px; }
   </div>
 </div>
 
+<!-- ════════════ BILLING PERIOD MODAL ════════════ -->
+<div class="modal-overlay" id="billingModal">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <div class="modal-title">📅 Master Periode Tagihan PLN</div>
+      <button class="modal-close" onclick="closeBillingModal()">✕</button>
+    </div>
+    <p style="font-size:0.75rem;color:var(--text-muted);margin-bottom:16px;line-height:1.5">PLN menghitung dari tanggal <strong>Mulai</strong> sampai <strong>Sampai</strong>. Edit langsung atau tambah periode kustom.</p>
+    <div style="display:grid;grid-template-columns:1fr 60px 1fr 1fr 36px;gap:6px;font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;padding:0 4px 8px;border-bottom:1px solid var(--border)">
+      <span>Periode</span><span style="text-align:center">Tahun</span><span style="text-align:center">Mulai (bln/tgl)</span><span style="text-align:center">Sampai (bln/tgl)</span><span style="text-align:center">Aksi</span>
+    </div>
+    <div id="billingPeriodList" style="margin-bottom:12px;max-height:360px;overflow-y:auto"></div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button class="btn-save" onclick="addCustomPeriod()" style="flex:1;background:var(--surface2);color:var(--accent);border:1px dashed var(--accent);box-shadow:none">+ Tambah Periode Kustom</button>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-save" onclick="saveBillingConfig()" style="flex:1">Simpan Semua</button>
+      <button class="btn-save" onclick="resetBillingDefault()" style="flex:0.5;background:linear-gradient(135deg,var(--accent3),#7c3aed);box-shadow:0 0 12px rgba(167,139,250,0.3)">Reset Default</button>
+    </div>
+  </div>
+</div>
+
 <div class="app">
 
   <!-- HEADER -->
@@ -379,6 +401,9 @@ canvas { max-height: 240px; }
       </div>
     </div>
     <div class="header-right no-print">
+      <button class="tariff-badge" onclick="openBillingModal()" title="Atur periode tagihan PLN">
+        📅 <span>Periode PLN</span>
+      </button>
       <button class="tariff-badge" onclick="openModal()" title="Ubah golongan tarif">
         ⚙️ <span id="tariffBadgeLabel">R-900 · Rp1.352/kWh</span>
       </button>
@@ -405,27 +430,36 @@ canvas { max-height: 240px; }
     <div class="kpi-grid">
       <div class="kpi-card" style="--card-accent: var(--accent)">
         <div class="kpi-label">Pemakaian Bulan Ini</div>
-        <div class="kpi-value" id="kpi-kwh">0</div>
-        <div class="kpi-unit">kWh</div>
-        <div class="kpi-delta up" id="kpi-kwh-delta">▲ 0% vs bulan lalu</div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px">
+          <div style="text-align:left"><div style="font-size:0.65rem;color:var(--text-muted)">KALENDER</div><div class="kpi-value" id="kpi-kwh" style="font-size:1.3rem">0</div><div class="kpi-unit" style="font-size:0.75rem">kWh</div></div>
+          <div style="text-align:right"><div style="font-size:0.65rem;color:var(--green)">REAL PLN</div><div class="kpi-value" id="kpi-real" style="font-size:1.3rem;color:var(--green)">0</div><div class="kpi-unit" style="font-size:0.75rem">kWh</div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:0.85rem">
+          <span id="kpi-kwh-delta" style="font-weight:600">▲ 0%</span>
+          <span id="kpi-real-delta" style="color:var(--green);font-weight:600">—</span>
+        </div>
       </div>
       <div class="kpi-card" style="--card-accent: var(--accent2)">
         <div class="kpi-label">Tagihan Estimasi</div>
-        <div class="kpi-value" id="kpi-cost">0</div>
-        <div class="kpi-unit">Ribuan Rupiah</div>
-        <div class="kpi-delta" id="kpi-cost-delta" style="color:var(--text-muted)">—</div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px">
+          <div style="text-align:left"><div style="font-size:0.65rem;color:var(--text-muted)">KALENDER</div><div class="kpi-value" id="kpi-cost" style="font-size:1.3rem">0</div><div class="kpi-unit" style="font-size:0.75rem">Ribuan Rp</div></div>
+          <div style="text-align:right"><div style="font-size:0.65rem;color:var(--green)">REAL PLN</div><div class="kpi-value" id="kpi-cost-real" style="font-size:1.3rem;color:var(--green)">0</div><div class="kpi-unit" style="font-size:0.75rem">Ribuan Rp</div></div>
+        </div>
+        <div class="kpi-delta" id="kpi-cost-delta" style="color:var(--text-muted);margin-top:4px">—</div>
       </div>
       <div class="kpi-card" style="--card-accent: var(--accent3)">
         <div class="kpi-label">Rata-rata Harian</div>
-        <div class="kpi-value" id="kpi-avg">0</div>
-        <div class="kpi-unit">kWh / hari</div>
-        <div class="kpi-delta down">— stabil</div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px">
+          <div style="text-align:left"><div style="font-size:0.65rem;color:var(--text-muted)">KALENDER</div><div class="kpi-value" id="kpi-avg" style="font-size:1.3rem">0</div><div class="kpi-unit" style="font-size:0.75rem">kWh/hari</div></div>
+          <div style="text-align:right"><div style="font-size:0.65rem;color:var(--green)">REAL PLN</div><div class="kpi-value" id="kpi-avg-real" style="font-size:1.3rem;color:var(--green)">0</div><div class="kpi-unit" style="font-size:0.75rem">kWh/hari</div></div>
+        </div>
+        <div class="kpi-delta down" style="margin-top:4px">—</div>
       </div>
       <div class="kpi-card" style="--card-accent: var(--green)">
         <div class="kpi-label">Pemakaian Tertinggi</div>
-        <div class="kpi-value" id="kpi-peak">0</div>
-        <div class="kpi-unit">kWh (hari puncak)</div>
-        <div class="kpi-delta" id="kpi-peak-day" style="color:var(--text-muted)">—</div>
+        <div class="kpi-value" id="kpi-peak" style="font-size:1.3rem">0</div>
+        <div class="kpi-unit" style="font-size:0.75rem" id="kpi-peak-day">—</div>
+        <div class="kpi-delta" style="color:var(--text-muted);font-size:0.7rem;margin-top:2px">kWh (hari puncak)</div>
       </div>
     </div>
 
@@ -498,17 +532,19 @@ canvas { max-height: 240px; }
         <div class="kpi-unit">Ribuan Rupiah</div>
         <div class="kpi-delta down">— estimasi</div>
       </div>
-      <div class="kpi-card" style="--card-accent: var(--green)">
-        <div class="kpi-label">Bulan Tertinggi</div>
-        <div class="kpi-value" id="a-peak-month">—</div>
-        <div class="kpi-unit" id="a-peak-kwh">0 kWh</div>
-        <div class="kpi-delta" style="color:var(--text-muted)">pemakaian terbanyak</div>
+      <div class="kpi-card" style="--card-accent: var(--accent)">
+        <div class="kpi-label">Tertinggi</div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px">
+          <div style="text-align:left"><div style="font-size:0.7rem;color:var(--text-muted);letter-spacing:0.04em">KALENDER</div><div class="kpi-value" id="a-peak-month" style="font-size:1.4rem;line-height:1.4">—</div><div class="kpi-unit" id="a-peak-kwh" style="font-size:0.85rem">0 kWh</div></div>
+          <div style="text-align:right"><div style="font-size:0.7rem;color:var(--green);letter-spacing:0.04em">REAL PLN</div><div class="kpi-value" id="a-peak-r-month" style="font-size:1.4rem;color:var(--green);line-height:1.4">—</div><div class="kpi-unit" id="a-peak-r-kwh" style="font-size:0.85rem">0 kWh</div></div>
+        </div>
       </div>
       <div class="kpi-card" style="--card-accent: var(--accent3)">
-        <div class="kpi-label">Bulan Terendah</div>
-        <div class="kpi-value" id="a-low-month">—</div>
-        <div class="kpi-unit" id="a-low-kwh">0 kWh</div>
-        <div class="kpi-delta" style="color:var(--text-muted)">pemakaian tersedikit</div>
+        <div class="kpi-label">Terendah</div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px">
+          <div style="text-align:left"><div style="font-size:0.7rem;color:var(--text-muted);letter-spacing:0.04em">KALENDER</div><div class="kpi-value" id="a-low-month" style="font-size:1.4rem;line-height:1.4">—</div><div class="kpi-unit" id="a-low-kwh" style="font-size:0.85rem">0 kWh</div></div>
+          <div style="text-align:right"><div style="font-size:0.7rem;color:var(--green);letter-spacing:0.04em">REAL PLN</div><div class="kpi-value" id="a-low-r-month" style="font-size:1.4rem;color:var(--green);line-height:1.4">—</div><div class="kpi-unit" id="a-low-r-kwh" style="font-size:0.85rem">0 kWh</div></div>
+        </div>
       </div>
     </div>
 
@@ -651,42 +687,23 @@ function getCurrentRate() {
 const MONTHS      = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 const MONTH_FULL  = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
-const monthlyData = [
-  { total: 285, day: 165, night: 120 },
-  { total: 262, day: 152, night: 110 },
-  { total: 298, day: 175, night: 123 },
-  { total: 310, day: 181, night: 129 },
-  { total: 327, day: 190, night: 137 },
-  { total: 0, day: 0, night: 0 },
-  { total: 0, day: 0, night: 0 },
-  { total: 0, day: 0, night: 0 },
-  { total: 0, day: 0, night: 0 },
-  { total: 0, day: 0, night: 0 },
-  { total: 0, day: 0, night: 0 },
-  { total: 0, day: 0, night: 0 },
-];
-
+function getMonthlyTotal(m) {
+  return Math.round((dailyData[m] || []).reduce((a, b) => a + b, 0));
+}
 function generateDailyData(month, total) {
   const days = [31,28,31,30,31,30,31,31,30,31,30,31][month];
   if (!total) return Array(days).fill(0);
   const data = [];
   let sum = 0;
   for (let i = 0; i < days - 1; i++) {
-    const v = Math.max(0.5, +((total / days) * (0.6 + Math.random() * 0.9)).toFixed(1));
+    const v = Math.max(1, Math.round((total / days) * (0.6 + Math.random() * 0.9)));
     data.push(v); sum += v;
   }
-  data.push(Math.max(0.5, +(total - sum).toFixed(1)));
+  data.push(Math.max(0, total - sum));
   return data;
 }
-const dailyData = MONTHS.map((_, i) => generateDailyData(i, monthlyData[i].total));
-const dailySplit = MONTHS.map((_, m) => {
-  const total = monthlyData[m].total;
-  const dayFrac = total ? monthlyData[m].day / total : 0.6;
-  return dailyData[m].map(v => ({
-    day: +(v * dayFrac).toFixed(1),
-    night: +(v * (1 - dayFrac)).toFixed(1)
-  }));
-});
+const DEMO_TOTALS = [285,262,298,310,327,0,0,0,0,0,0,0];
+const dailyData = MONTHS.map((_, i) => generateDailyData(i, DEMO_TOTALS[i]));
 
 const DEVICES = [
   { name: 'AC (2 unit)',      icon: '❄️', kwh: 137, color: '#00d4ff' },
@@ -804,7 +821,7 @@ function renderMonthSelector() {
     const btn = document.createElement('button');
     btn.className = 'month-btn' + (i === activeMonth ? ' active' : '');
     btn.textContent = MONTHS[i];
-    if (!monthlyData[i].total) btn.style.opacity = '0.4';
+    if (!getMonthlyTotal(i)) btn.style.opacity = '0.4';
     btn.onclick = () => { activeMonth = i; renderMonthlyView(); };
     wrap.appendChild(btn);
   });
@@ -843,29 +860,39 @@ function addYear() {
 function renderMonthlyView() {
   renderYearSelector();
   renderMonthSelector();
-  const d = monthlyData[activeMonth];
-  const prev = activeMonth > 0 ? monthlyData[activeMonth - 1] : null;
+  const d = getMonthlyTotal(activeMonth);
+  const prev = activeMonth > 0 ? getMonthlyTotal(activeMonth - 1) : null;
   const daily = dailyData[activeMonth];
   const days = [31,28,31,30,31,30,31,31,30,31,30,31][activeMonth];
 
-  document.getElementById('kpi-kwh').textContent = d.total;
-  document.getElementById('kpi-cost').textContent = fmtK(calcCost(d.total));
+  const realKwh = getRealKwh(activeMonth);
+  document.getElementById('kpi-kwh').textContent = d;
+  document.getElementById('kpi-real').textContent = realKwh;
+  document.getElementById('kpi-cost').textContent = fmtK(calcCost(d));
+  document.getElementById('kpi-cost-real').textContent = fmtK(calcCost(realKwh));
   document.getElementById('kpi-cost-delta').textContent = `${selectedTariffKey} · Rp${getCurrentRate().toLocaleString('id-ID')}/kWh`;
-  document.getElementById('kpi-avg').textContent = d.total ? (d.total / days).toFixed(1) : '0';
-  const peak = d.total ? Math.max(...daily).toFixed(1) : '0';
-  const peakDay = d.total ? daily.indexOf(Math.max(...daily)) + 1 : '—';
+  document.getElementById('kpi-avg').textContent = d ? Math.round(d / days) : '0';
+  const avgRealDays = realKwh ? Math.round(realKwh / days) : 0;
+  document.getElementById('kpi-avg-real').textContent = avgRealDays;
+  const peak = d ? Math.round(Math.max(...daily)) : '0';
+  const peakDay = d ? daily.indexOf(Math.max(...daily)) + 1 : '—';
   document.getElementById('kpi-peak').textContent = peak;
-  document.getElementById('kpi-peak-day').textContent = d.total ? `Tgl ${peakDay} ${MONTHS[activeMonth]}` : '—';
-  if (prev?.total && d.total) {
-    const pct = (((d.total - prev.total) / prev.total) * 100).toFixed(1);
+  document.getElementById('kpi-peak-day').textContent = d ? `Tgl ${peakDay}` : '—';
+
+  if (prev && d) {
+    const pct = (((d - prev) / prev) * 100).toFixed(1);
     const el = document.getElementById('kpi-kwh-delta');
-    el.textContent = (pct > 0 ? '▲ ' : '▼ ') + Math.abs(pct) + '% vs bulan lalu';
-    el.className = 'kpi-delta ' + (pct > 0 ? 'up' : 'down');
+    el.textContent = (pct > 0 ? '▲ ' : '▼ ') + Math.abs(pct) + '%';
+  }
+  const prevReal = activeMonth > 0 ? getRealKwh(activeMonth - 1) : null;
+  if (prevReal && realKwh) {
+    const rpct = (((realKwh - prevReal) / prevReal) * 100).toFixed(1);
+    document.getElementById('kpi-real-delta').textContent = (rpct > 0 ? '▲ ' : '▼ ') + Math.abs(rpct) + '%';
   }
   document.getElementById('monthly-subtitle').textContent = `kWh per hari — ${MONTH_FULL[activeMonth]} ${activeYear}`;
-  document.getElementById('monthly-total-badge').textContent = d.total + ' kWh total';
+  document.getElementById('monthly-total-badge').textContent = d + ' kWh total';
   destroyChart('daily');
-  const avg = d.total / daily.length;
+  const avg = d / daily.length;
   charts['daily'] = new Chart(document.getElementById('dailyChart'), {
     type: 'bar',
     data: {
@@ -892,56 +919,75 @@ function renderAnnualView() {
   document.getElementById('a-year-label').textContent = activeYear;
   document.getElementById('a-cost-year-label').textContent = activeYear;
   document.getElementById('annual-chart-subtitle').textContent = `kWh bulanan — ${activeYear}`;
-  document.getElementById('annual-cost-subtitle').textContent = `Estimasi biaya (Rp) — ${selectedTariffKey}`;
+  document.getElementById('annual-cost-subtitle').textContent = `Tagihan (Rp) — ${selectedTariffKey}`;
 
   destroyChart('annual');
   destroyChart('cost');
   destroyChart('semester');
 
-  const totals = monthlyData.map(d => d.total);
+  const totals = MONTHS.map((_, i) => getMonthlyTotal(i));
   const costs = totals.map(v => calcCost(v));
+  const realTotals = MONTHS.map((_, i) => getRealKwh(i));
+  const realCosts = realTotals.map(v => calcCost(v));
   const filled = totals.filter(v => v > 0);
+  const chartOpts = (ds) => ({ responsive: true, plugins: { ...CHART_DEFAULTS.plugins, legend: { labels: { color: '#94a3b8', font: { family: 'Space Mono', size: 10 } } } }, scales: CHART_DEFAULTS.scales });
 
   if (!filled.length) {
     document.getElementById('a-kwh').textContent = '0';
     document.getElementById('a-cost').textContent = fmtK(0);
     document.getElementById('a-peak-month').textContent = '—';
     document.getElementById('a-peak-kwh').textContent = '0 kWh';
+    document.getElementById('a-peak-r-month').textContent = '—';
+    document.getElementById('a-peak-r-kwh').textContent = '0 kWh';
     document.getElementById('a-low-month').textContent = '—';
     document.getElementById('a-low-kwh').textContent = '0 kWh';
+    document.getElementById('a-low-r-month').textContent = '—';
+    document.getElementById('a-low-r-kwh').textContent = '0 kWh';
     charts['annual'] = new Chart(document.getElementById('annualChart'), {
       type: 'bar',
-      data: { labels: MONTHS, datasets: [{ label: 'kWh', data: totals, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: '#1e2d45', borderWidth: 1, borderRadius: 5 }] },
-      options: { responsive: true, plugins: { ...CHART_DEFAULTS.plugins, legend: { display: false } }, scales: CHART_DEFAULTS.scales }
+      data: { labels: MONTHS, datasets: [
+        { label: 'Kalender', data: totals, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: '#1e2d45', borderWidth: 1, borderRadius: 4 },
+        { label: 'Real (PLN)', data: realTotals, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: '#1e2d45', borderWidth: 1, borderRadius: 4 }
+      ]}, options: chartOpts()
     });
     charts['cost'] = new Chart(document.getElementById('costChart'), {
       type: 'line',
-      data: { labels: MONTHS, datasets: [{ label: 'Biaya (Rp)', data: costs, borderColor: '#1e2d45', backgroundColor: 'transparent', fill: false, pointRadius: 0 }] },
-      options: { responsive: true, plugins: { ...CHART_DEFAULTS.plugins, tooltip: { ...CHART_DEFAULTS.plugins.tooltip, callbacks: { label: ctx => 'Rp ' + Math.round(ctx.raw).toLocaleString('id-ID') } } }, scales: CHART_DEFAULTS.scales }
+      data: { labels: MONTHS, datasets: [
+        { label: 'Kalender', data: costs, borderColor: '#1e2d45', backgroundColor: 'transparent', fill: false, pointRadius: 0 },
+        { label: 'Real (PLN)', data: realCosts, borderColor: '#1e2d45', backgroundColor: 'transparent', fill: false, borderDash: [5,3], pointRadius: 0 }
+      ]}, options: chartOpts()
     });
     charts['semester'] = new Chart(document.getElementById('semesterChart'), {
       type: 'bar',
-      data: { labels: ['Semester 1 (Jan–Jun)', 'Semester 2 (Jul–Des)'], datasets: [{ label: 'kWh', data: [0, 0], backgroundColor: ['rgba(255,255,255,0.03)','rgba(255,255,255,0.03)'], borderColor: '#1e2d45', borderWidth: 1, borderRadius: 8 }] },
-      options: { responsive: true, plugins: { ...CHART_DEFAULTS.plugins, legend: { display: false } }, scales: CHART_DEFAULTS.scales }
+      data: { labels: ['Semester 1 (Jan–Jun)', 'Semester 2 (Jul–Des)'], datasets: [
+        { label: 'Kalender', data: [0, 0], backgroundColor: 'rgba(255,255,255,0.03)', borderColor: '#1e2d45', borderWidth: 1, borderRadius: 4 },
+        { label: 'Real (PLN)', data: [0, 0], backgroundColor: 'rgba(255,255,255,0.03)', borderColor: '#1e2d45', borderWidth: 1, borderRadius: 4 }
+      ]}, options: chartOpts()
     });
     const emptyCells = MONTH_FULL.map(m =>
-      `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--border)">
-        <div style="padding:5px 8px;font-size:0.72rem;color:#1e2d45;text-align:center">${m}</div>
-        <div style="padding:5px 8px;font-size:0.72rem;color:#1e2d45;text-align:center">—</div>
-        <div style="padding:5px 8px;font-size:0.72rem;color:#1e2d45;text-align:center">—</div>
+      `<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 1fr;border-bottom:1px solid var(--border)">
+        <div style="padding:5px 6px;font-size:0.7rem;color:#1e2d45;text-align:center">${m}</div>
+        <div style="padding:5px 6px;font-size:0.7rem;color:#1e2d45;text-align:center">—</div>
+        <div style="padding:5px 6px;font-size:0.7rem;color:#1e2d45;text-align:center">—</div>
+        <div style="padding:5px 6px;font-size:0.7rem;color:#1e2d45;text-align:center">—</div>
+        <div style="padding:5px 6px;font-size:0.7rem;color:#1e2d45;text-align:center">—</div>
       </div>`
     ).join('');
     document.getElementById('monthly-summary-table').innerHTML =
-      `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:2px solid var(--border);margin-bottom:2px">
-        <div style="padding:5px 8px;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);text-align:center">Bulan</div>
-        <div style="padding:5px 8px;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);text-align:center">Pemakaian</div>
-        <div style="padding:5px 8px;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);text-align:center">Estimasi</div>
+      `<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 1fr;border-bottom:2px solid var(--border);margin-bottom:2px">
+        <div style="padding:5px 6px;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);text-align:center">Bulan</div>
+        <div style="padding:5px 6px;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);text-align:center">Pemakaian<br><span style="font-size:0.55rem">Kalender</span></div>
+        <div style="padding:5px 6px;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);text-align:center">Pemakaian<br><span style="font-size:0.55rem">Real PLN</span></div>
+        <div style="padding:5px 6px;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);text-align:center">Tagihan<br><span style="font-size:0.55rem">Estimasi</span></div>
+        <div style="padding:5px 6px;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);text-align:center">Tagihan<br><span style="font-size:0.55rem">Real PLN</span></div>
       </div>` + emptyCells;
     return;
   }
 
   const total = filled.reduce((a, b) => a + b, 0);
   const totalCost = calcCost(total);
+  const realTotal = realTotals.reduce((a, b) => a + b, 0);
+  const realTotalCost = calcCost(realTotal);
   const peakIdx = totals.indexOf(Math.max(...filled));
   const lowVal = Math.min(...filled);
   const lowIdx = totals.indexOf(lowVal);
@@ -949,73 +995,79 @@ function renderAnnualView() {
   document.getElementById('a-kwh').textContent = total;
   document.getElementById('a-cost').textContent = fmtK(totalCost);
   document.getElementById('a-peak-month').textContent = MONTHS[peakIdx];
-  document.getElementById('a-peak-kwh').textContent = Math.max(...filled) + ' kWh';
+  document.getElementById('a-peak-kwh').textContent = Math.round(Math.max(...filled)) + ' kWh';
+  const rFilled = realTotals.filter(v => v > 0);
+  const rPeakIdx = rFilled.length ? realTotals.indexOf(Math.max(...rFilled)) : -1;
+  const rLowVal = rFilled.length ? Math.min(...rFilled) : 0;
+  const rLowIdx = rFilled.length ? realTotals.indexOf(rLowVal) : -1;
+  document.getElementById('a-peak-r-month').textContent = rPeakIdx >= 0 ? MONTHS[rPeakIdx] : '—';
+  document.getElementById('a-peak-r-kwh').textContent = rPeakIdx >= 0 ? Math.round(realTotals[rPeakIdx]) + ' kWh' : '0 kWh';
   document.getElementById('a-low-month').textContent = MONTHS[lowIdx];
-  document.getElementById('a-low-kwh').textContent = lowVal + ' kWh';
+  document.getElementById('a-low-kwh').textContent = Math.round(lowVal) + ' kWh';
+  document.getElementById('a-low-r-month').textContent = rLowIdx >= 0 ? MONTHS[rLowIdx] : '—';
+  document.getElementById('a-low-r-kwh').textContent = rLowIdx >= 0 ? Math.round(realTotals[rLowIdx]) + ' kWh' : '0 kWh';
+
+  const barColors = totals.map(v => v === 0 ? 'rgba(255,255,255,0.05)' : (v === Math.max(...filled) ? 'rgba(255,107,53,0.7)' : 'rgba(0,212,255,0.55)'));
   charts['annual'] = new Chart(document.getElementById('annualChart'), {
     type: 'bar',
-    data: {
-      labels: MONTHS,
-      datasets: [{ label: 'kWh', data: totals,
-        backgroundColor: totals.map(v => v === 0 ? 'rgba(255,255,255,0.05)' : (v === Math.max(...filled) ? 'rgba(255,107,53,0.7)' : 'rgba(0,212,255,0.55)')),
-        borderColor: totals.map(v => v === 0 ? '#1e2d45' : '#00d4ff'),
-        borderWidth: 1, borderRadius: 5 }]
-    },
-    options: { responsive: true, plugins: { ...CHART_DEFAULTS.plugins, legend: { display: false } }, scales: CHART_DEFAULTS.scales }
+    data: { labels: MONTHS, datasets: [
+      { label: 'Kalender', data: totals, backgroundColor: barColors, borderColor: '#00d4ff', borderWidth: 1, borderRadius: 4 },
+      { label: 'Real (PLN)', data: realTotals, backgroundColor: 'rgba(34,211,160,0.6)', borderColor: '#22d3a0', borderWidth: 1, borderRadius: 4 }
+    ]}, options: chartOpts()
   });
 
   destroyChart('cost');
   charts['cost'] = new Chart(document.getElementById('costChart'), {
     type: 'line',
-    data: {
-      labels: MONTHS,
-      datasets: [{ label: 'Biaya (Rp)', data: costs, borderColor: '#ff6b35', backgroundColor: 'rgba(255,107,53,0.1)', fill: true, tension: 0.4, pointBackgroundColor: '#ff6b35', pointRadius: 4 }]
-    },
-    options: {
-      responsive: true,
-      plugins: { ...CHART_DEFAULTS.plugins, tooltip: { ...CHART_DEFAULTS.plugins.tooltip, callbacks: { label: ctx => 'Rp ' + Math.round(ctx.raw).toLocaleString('id-ID') } } },
-      scales: CHART_DEFAULTS.scales
-    }
+    data: { labels: MONTHS, datasets: [
+      { label: 'Kalender', data: costs, borderColor: '#ff6b35', backgroundColor: 'rgba(255,107,53,0.1)', fill: true, tension: 0.4, pointBackgroundColor: '#ff6b35', pointRadius: 4 },
+      { label: 'Real (PLN)', data: realCosts, borderColor: '#22d3a0', backgroundColor: 'rgba(34,211,160,0.08)', fill: true, borderDash: [5,3], tension: 0.4, pointBackgroundColor: '#22d3a0', pointRadius: 4 }
+    ]}, options: chartOpts()
   });
 
-  const sem1 = totals.slice(0, 6).reduce((a, b) => a + b, 0);
-  const sem2 = totals.slice(6, 12).reduce((a, b) => a + b, 0);
+  const sem1k = totals.slice(0, 6).reduce((a, b) => a + b, 0);
+  const sem2k = totals.slice(6, 12).reduce((a, b) => a + b, 0);
+  const sem1r = realTotals.slice(0, 6).reduce((a, b) => a + b, 0);
+  const sem2r = realTotals.slice(6, 12).reduce((a, b) => a + b, 0);
   destroyChart('semester');
   charts['semester'] = new Chart(document.getElementById('semesterChart'), {
     type: 'bar',
-    data: {
-      labels: ['Semester 1 (Jan–Jun)', 'Semester 2 (Jul–Des)'],
-      datasets: [{ label: 'kWh', data: [sem1, sem2], backgroundColor: ['rgba(0,212,255,0.6)','rgba(167,139,250,0.6)'], borderColor: ['#00d4ff','#a78bfa'], borderWidth: 2, borderRadius: 8 }]
-    },
-    options: { responsive: true, plugins: { ...CHART_DEFAULTS.plugins, legend: { display: false } }, scales: CHART_DEFAULTS.scales }
+    data: { labels: ['Semester 1 (Jan–Jun)', 'Semester 2 (Jul–Des)'], datasets: [
+      { label: 'Kalender', data: [sem1k, sem2k], backgroundColor: 'rgba(0,212,255,0.6)', borderColor: '#00d4ff', borderWidth: 2, borderRadius: 4 },
+      { label: 'Real (PLN)', data: [sem1r, sem2r], backgroundColor: 'rgba(34,211,160,0.6)', borderColor: '#22d3a0', borderWidth: 2, borderRadius: 4 }
+    ]}, options: chartOpts()
   });
 
   // Summary table
   const tbl = document.getElementById('monthly-summary-table');
-  const grandTotal = totals.reduce((a, b) => a + b, 0);
-  const grandCost = calcCost(grandTotal);
   const hasAny = filled.length > 0;
-  const th = (label, align) => `<div style="padding:5px 8px;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);text-align:${align}">${label}</div>`;
-  const td = (content, align, color) => `<div style="padding:5px 8px;font-size:0.72rem;text-align:${align};${color || 'color:var(--text)'}">${content}</div>`;
+  const th = (label, sub) => `<div style="padding:4px 6px;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);text-align:center">${label}${sub ? `<br><span style="font-size:0.5rem;opacity:0.7">${sub}</span>` : ''}</div>`;
+  const td = (val, color) => `<div style="padding:4px 6px;font-size:0.68rem;text-align:center;${color || 'color:var(--text)'}">${val}</div>`;
   const rows = totals.map((v, i) => {
+    const rv = realTotals[i];
     const c = calcCost(v);
+    const rc = calcCost(rv);
     const isPeak = hasAny && v === Math.max(...filled);
     const color = v === 0 ? 'color:#1e2d45' : (isPeak ? 'color:#ff6b35;font-weight:700' : 'color:var(--text)');
-    return `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--border)">
-      ${td(MONTH_FULL[i], 'center', color)}
-      ${td(v > 0 ? v.toFixed(1) + ' kWh' : '—', 'center', color)}
-      ${td(v > 0 ? 'Rp' + Math.round(c).toLocaleString('id-ID') : '—', 'center', color)}
+    return `<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 1fr;border-bottom:1px solid var(--border)">
+      ${td(MONTH_FULL[i], color)}
+      ${td(v > 0 ? v : '—', color)}
+      ${td(rv > 0 ? rv : '—', v > 0 ? 'color:var(--green)' : 'color:#1e2d45')}
+      ${td(v > 0 ? 'Rp' + Math.round(c).toLocaleString('id-ID') : '—', color)}
+      ${td(rv > 0 ? 'Rp' + Math.round(rc).toLocaleString('id-ID') : '—', v > 0 ? 'color:var(--green)' : 'color:#1e2d45')}
     </div>`;
   }).join('');
   tbl.innerHTML =
-    `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:2px solid var(--border);margin-bottom:2px">
-      ${th('Bulan', 'center')}${th('Pemakaian', 'center')}${th('Estimasi', 'center')}
+    `<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 1fr;border-bottom:2px solid var(--border);margin-bottom:2px">
+      ${th('Bulan')}${th('Pemakaian','Kalender')}${th('Pemakaian','Real PLN')}${th('Tagihan','Estimasi')}${th('Tagihan','Real PLN')}
     </div>` +
     rows +
-    `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-top:2px solid var(--accent);margin-top:2px;background:rgba(0,212,255,0.05)">
-      ${td('TOTAL', 'center', 'color:var(--accent);font-weight:700;font-size:0.78rem')}
-      ${td(grandTotal.toFixed(1) + ' kWh', 'center', 'color:var(--accent);font-weight:700;font-size:0.78rem')}
-      ${td('Rp' + Math.round(grandCost).toLocaleString('id-ID'), 'center', 'color:var(--accent);font-weight:700;font-size:0.78rem')}
+    `<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 1fr;border-top:2px solid var(--accent);margin-top:2px;background:rgba(0,212,255,0.05)">
+      ${td('TOTAL', 'color:var(--accent);font-weight:700;font-size:0.74rem')}
+      ${td(total + ' kWh', 'color:var(--accent);font-weight:700;font-size:0.74rem')}
+      ${td(realTotal + ' kWh', 'color:var(--green);font-weight:700;font-size:0.74rem')}
+      ${td('Rp' + Math.round(totalCost).toLocaleString('id-ID'), 'color:var(--accent);font-weight:700;font-size:0.74rem')}
+      ${td('Rp' + Math.round(realTotalCost).toLocaleString('id-ID'), 'color:var(--green);font-weight:700;font-size:0.74rem')}
     </div>`;
 }
 
@@ -1082,20 +1134,15 @@ function switchView(view) {
 // ══════════════════════════════════════════════
 //  ADD / EDIT / DELETE ENTRY
 // ══════════════════════════════════════════════
-function recalcMonthly(m) {
-  monthlyData[m].total = +dailyData[m].reduce((a, b) => a + b, 0).toFixed(1);
-  monthlyData[m].day   = +dailySplit[m].reduce((a, s) => a + s.day,   0).toFixed(1);
-  monthlyData[m].night = +dailySplit[m].reduce((a, s) => a + s.night, 0).toFixed(1);
-}
 
 function loadDayToForm() {
   const m   = +document.getElementById('inp-month').value;
   const day = +document.getElementById('inp-day').value;
   const label = document.getElementById('form-mode-label');
   if (!day || day < 1 || day > 31) return;
-  const split = dailySplit[m]?.[day - 1];
-  if (split && (split.day > 0 || split.night > 0)) {
-    document.getElementById('inp-total-kwh').value = (split.day + split.night).toFixed(1);
+  const val = dailyData[m]?.[day - 1];
+  if (val) {
+    document.getElementById('inp-total-kwh').value = val;
     label.textContent = '✏️ Edit Data Pemakaian';
   } else {
     document.getElementById('inp-total-kwh').value = '';
@@ -1111,13 +1158,7 @@ function addEntry() {
   const maxDays = [31,28,31,30,31,30,31,31,30,31,30,31][m];
   if (day > maxDays) { alert(`Bulan ${MONTH_FULL[m]} hanya ${maxDays} hari!`); return; }
   const idx = day - 1;
-  const monthTotal = monthlyData[m].total;
-  const dayFrac = monthTotal ? monthlyData[m].day / monthTotal : 0.6;
-  const dayK  = +(totalK * dayFrac).toFixed(1);
-  const nightK= +(totalK - dayK).toFixed(1);
-  dailySplit[m][idx] = { day: dayK, night: nightK };
-  dailyData[m][idx]  = totalK;
-  recalcMonthly(m);
+  dailyData[m][idx] = totalK;
   activeMonth = m;
   saveToStorage();
   renderMonthlyView();
@@ -1130,9 +1171,7 @@ function deleteEntry() {
   const day = +document.getElementById('inp-day').value;
   if (!day || day < 1 || day > 31) return;
   const idx = day - 1;
-  dailySplit[m][idx] = { day: 0, night: 0 };
-  dailyData[m][idx]  = 0;
-  recalcMonthly(m);
+  dailyData[m][idx] = 0;
   activeMonth = m;
   saveToStorage();
   renderMonthlyView();
@@ -1154,13 +1193,15 @@ function saveToStorage() {
   const key = getStorageKey();
   const existing = JSON.parse(localStorage.getItem(key) || '{}');
   const years = existing.years || {};
-  years[activeYear] = { monthlyData, dailyData, dailySplit };
+  years[activeYear] = { dailyData };
   localStorage.setItem(key, JSON.stringify({
     years,
     activeYear,
     selectedTariffKey,
     customRate,
-    devices: DEVICES
+    devices: DEVICES,
+    billingConfig,
+    customPeriods
   }));
 }
 
@@ -1173,9 +1214,7 @@ function loadFromStorage() {
     if (saved.activeYear) activeYear = saved.activeYear;
     const yearData = saved.years?.[activeYear];
     if (yearData) {
-      if (yearData.monthlyData) yearData.monthlyData.forEach((d, i) => { monthlyData[i] = d; });
       if (yearData.dailyData)   yearData.dailyData.forEach((d, i)   => { dailyData[i]   = d; });
-      if (yearData.dailySplit)  yearData.dailySplit.forEach((d, i)  => { dailySplit[i]  = d; });
     }
     if (saved.selectedTariffKey) selectedTariffKey = saved.selectedTariffKey;
     if (typeof saved.customRate === 'number') customRate = saved.customRate;
@@ -1183,6 +1222,8 @@ function loadFromStorage() {
       DEVICES.length = 0;
       saved.devices.forEach(d => DEVICES.push(d));
     }
+    if (saved.billingConfig?.length === 12) billingConfig = saved.billingConfig;
+    if (saved.customPeriods) customPeriods = saved.customPeriods;
   } catch(e) { console.warn('Gagal baca localStorage', e); }
 }
 
@@ -1208,9 +1249,7 @@ function switchYear(year) {
   const saved = raw ? JSON.parse(raw) : {};
   const yearData = saved.years?.[year];
   if (yearData) {
-    yearData.monthlyData.forEach((d, i) => { monthlyData[i] = d; });
     yearData.dailyData.forEach((d, i)   => { dailyData[i]   = d; });
-    yearData.dailySplit.forEach((d, i)  => { dailySplit[i]  = d; });
   } else {
     zeroState(year);
   }
@@ -1220,20 +1259,6 @@ function switchYear(year) {
 
 function seedDemoData() {
   activeYear = new Date().getFullYear();
-  const demoMonthly = [
-    { total: 285, day: 165, night: 120 },
-    { total: 262, day: 152, night: 110 },
-    { total: 298, day: 175, night: 123 },
-    { total: 310, day: 181, night: 129 },
-    { total: 327, day: 190, night: 137 },
-    { total: 0, day: 0, night: 0 },
-    { total: 0, day: 0, night: 0 },
-    { total: 0, day: 0, night: 0 },
-    { total: 0, day: 0, night: 0 },
-    { total: 0, day: 0, night: 0 },
-    { total: 0, day: 0, night: 0 },
-    { total: 0, day: 0, night: 0 },
-  ];
   const demoDevices = [
     { name: 'AC (2 unit)',      icon: '❄️', kwh: 137, color: '#00d4ff' },
     { name: 'Kulkas',           icon: '🧊', kwh: 42,  color: '#a78bfa' },
@@ -1244,24 +1269,140 @@ function seedDemoData() {
     { name: 'Komputer/Laptop',  icon: '💻', kwh: 22,  color: '#f472b6' },
     { name: 'Lainnya',          icon: '🔌', kwh: 24,  color: '#6b7280' },
   ];
-  demoMonthly.forEach((d, i) => { monthlyData[i] = d; });
-  const newDaily = demoMonthly.map((dm, i) => generateDailyData(i, dm.total));
-  const newSplit = demoMonthly.map((_, m) => {
-    const total = monthlyData[m].total;
-    const dayFrac = total ? monthlyData[m].day / total : 0.6;
-    return newDaily[m].map(v => ({
-      day: +(v * dayFrac).toFixed(1),
-      night: +(v * (1 - dayFrac)).toFixed(1)
-    }));
-  });
+  const newDaily = MONTHS.map((_, i) => generateDailyData(i, DEMO_TOTALS[i]));
   newDaily.forEach((d, i) => { dailyData[i] = d; });
-  newSplit.forEach((d, i) => { dailySplit[i] = d; });
   DEVICES.length = 0;
   demoDevices.forEach(d => DEVICES.push(d));
   selectedTariffKey = 'R-900';
   customRate = 1352;
+  billingConfig = JSON.parse(JSON.stringify(BILLING_DEFAULT));
+  customPeriods = [];
   saveToStorage();
 }
+
+// ══════════════════════════════════════════════
+//  BILLING PERIOD (PLN)
+// ══════════════════════════════════════════════
+const BILLING_DEFAULT = [
+  { startM: 11, startD: 27, endM: 0, endD: 25 },
+  { startM: 0, startD: 26, endM: 1, endD: 25 },
+  { startM: 1, startD: 26, endM: 2, endD: 25 },
+  { startM: 2, startD: 26, endM: 3, endD: 25 },
+  { startM: 3, startD: 26, endM: 4, endD: 25 },
+  { startM: 4, startD: 26, endM: 5, endD: 25 },
+  { startM: 5, startD: 26, endM: 6, endD: 25 },
+  { startM: 6, startD: 26, endM: 7, endD: 25 },
+  { startM: 7, startD: 26, endM: 8, endD: 25 },
+  { startM: 8, startD: 26, endM: 9, endD: 25 },
+  { startM: 9, startD: 26, endM: 10, endD: 25 },
+  { startM: 10, startD: 26, endM: 11, endD: 25 },
+];
+let billingConfig = JSON.parse(JSON.stringify(BILLING_DEFAULT));
+let customPeriods = [];
+
+function sumPeriod(p) {
+  let total = 0;
+  const dim = [31,28,31,30,31,30,31,31,30,31,30,31];
+  if (dailyData[p.startM]) {
+    const startDay = Math.min(p.startD - 1, dim[p.startM] - 1);
+    for (let d = startDay; d < dim[p.startM]; d++) {
+      total += dailyData[p.startM][d] || 0;
+    }
+  }
+  if (dailyData[p.endM] && p.endM !== p.startM) {
+    const endDay = Math.min(p.endD, dim[p.endM]);
+    for (let d = 0; d < endDay; d++) {
+      total += dailyData[p.endM][d] || 0;
+    }
+  }
+  return Math.round(total);
+}
+
+function getRealKwh(month) {
+  const custom = customPeriods.find(p => p.month === month && p.year === activeYear);
+  if (custom) return sumPeriod(custom);
+  const p = billingConfig[month];
+  if (!p) return 0;
+  return sumPeriod(p);
+}
+
+function openBillingModal() { renderBillingPeriods(); document.getElementById('billingModal').classList.add('open'); }
+function closeBillingModal() { document.getElementById('billingModal').classList.remove('open'); }
+
+function renderBillingPeriods() {
+  const wrap = document.getElementById('billingPeriodList');
+  const row = (cells) =>
+    `<div style="display:grid;grid-template-columns:1fr 60px 1fr 1fr 36px;gap:6px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--border)">${cells}</div>`;
+  const inp = (id, val, o = {}) =>
+    `<input type="number" id="${id}" value="${val}" min="${o.min||1}" max="${o.max||31}" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px;color:${o.color||'var(--text)'};font-family:'Space Mono',monospace;font-size:0.75rem;text-align:center;outline:none">`;
+  const sel = (id, val, arr) =>
+    `<select id="${id}" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px;color:var(--text);font-family:'Space Mono',monospace;font-size:0.68rem;text-align:center;outline:none;cursor:pointer">${arr.map((m, i) => `<option value="${i}" ${i===val?'selected':''}>${m}</option>`).join('')}</select>`;
+  const dateCol = (mId, dId, mVal, dVal) =>
+    `<div style="display:flex;gap:4px;align-items:center">${sel(mId, mVal, MONTHS)}${inp(dId, dVal)}</div>`;
+
+  wrap.innerHTML =
+    billingConfig.map((p, i) => row(`
+      <span style="font-size:0.82rem;font-weight:600">${MONTH_FULL[i]}</span>
+      <span style="font-size:0.72rem;color:var(--text-muted);text-align:center">${activeYear}</span>
+      ${dateCol(`bp-sm-${i}`, `bp-sd-${i}`, p.startM, p.startD)}
+      ${dateCol(`bp-em-${i}`, `bp-ed-${i}`, p.endM, p.endD)}
+      <span style="font-size:0.7rem;color:var(--text-muted);cursor:pointer;text-align:center" onclick="resetPeriod(${i})" title="Reset">↺</span>
+    `)).join('') +
+    customPeriods.map((p, i) => row(`
+      ${sel(`cp-month-${i}`, p.month, MONTH_FULL)}
+      ${inp(`cp-year-${i}`, p.year, {min:2020, max:2100, color:'var(--accent)'})}
+      ${dateCol(`cp-sm-${i}`, `cp-sd-${i}`, p.startM, p.startD)}
+      ${dateCol(`cp-em-${i}`, `cp-ed-${i}`, p.endM, p.endD)}
+      <span style="font-size:0.7rem;color:var(--red);cursor:pointer;text-align:center" onclick="deleteCustomPeriod(${i})" title="Hapus">🗑️</span>
+    `)).join('');
+}
+
+function resetPeriod(i) {
+  billingConfig[i] = { ...BILLING_DEFAULT[i] };
+  const d = billingConfig[i];
+  document.getElementById(`bp-sm-${i}`).value = d.startM;
+  document.getElementById(`bp-sd-${i}`).value = d.startD;
+  document.getElementById(`bp-em-${i}`).value = d.endM;
+  document.getElementById(`bp-ed-${i}`).value = d.endD;
+}
+
+function addCustomPeriod() {
+  customPeriods.push({ month: 0, year: activeYear, startM: 0, startD: 1, endM: 0, endD: 28 });
+  renderBillingPeriods();
+}
+
+function deleteCustomPeriod(i) { customPeriods.splice(i, 1); renderBillingPeriods(); }
+
+function saveBillingConfig() {
+  billingConfig.forEach((p, i) => {
+    p.startM = +document.getElementById(`bp-sm-${i}`).value || p.startM;
+    p.startD = +document.getElementById(`bp-sd-${i}`).value || p.startD;
+    p.endM   = +document.getElementById(`bp-em-${i}`).value || p.endM;
+    p.endD   = +document.getElementById(`bp-ed-${i}`).value || p.endD;
+  });
+  customPeriods.forEach((p, i) => {
+    p.month  = +document.getElementById(`cp-month-${i}`).value  || p.month;
+    p.year   = +document.getElementById(`cp-year-${i}`).value   || p.year;
+    p.startM = +document.getElementById(`cp-sm-${i}`).value  || p.startM;
+    p.startD = +document.getElementById(`cp-sd-${i}`).value  || p.startD;
+    p.endM   = +document.getElementById(`cp-em-${i}`).value  || p.endM;
+    p.endD   = +document.getElementById(`cp-ed-${i}`).value  || p.endD;
+  });
+  saveToStorage();
+  closeBillingModal();
+  const av = document.querySelector('.view.active').id.replace('view-', '');
+  switchView(av);
+}
+
+function resetBillingDefault() {
+  billingConfig = JSON.parse(JSON.stringify(BILLING_DEFAULT));
+  customPeriods = [];
+  renderBillingPeriods();
+}
+
+document.getElementById('billingModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeBillingModal();
+});
 
 function switchToMode(mode) {
   if (mode === activeMode) { switchViewCurrent(); return; }
@@ -1303,14 +1444,14 @@ function confirmResetDemo() {
 function zeroState(year) {
   if (year) activeYear = year;
   for (let i = 0; i < 12; i++) {
-    monthlyData[i] = { total: 0, day: 0, night: 0 };
     const days = [31,28,31,30,31,30,31,31,30,31,30,31][i];
     dailyData[i] = Array(days).fill(0);
-    dailySplit[i] = Array(days).fill(null).map(() => ({ day: 0, night: 0 }));
   }
   DEVICES.length = 0;
   selectedTariffKey = 'R-900';
   customRate = 1352;
+  billingConfig = JSON.parse(JSON.stringify(BILLING_DEFAULT));
+  customPeriods = [];
 }
 
 function closeChoiceModal() {
