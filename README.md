@@ -7,22 +7,24 @@ Dashboard monitor pemakaian listrik rumah — single HTML file, no install neede
 ### 📅 Bulanan (Monthly View)
 - KPI cards: total kWh, estimasi tagihan, rata-rata harian, hari puncak
 - Bar chart pemakaian harian dengan highlight hari >130% rata-rata
-- Doughnut chart distribusi Pagi–Sore vs Malam
-- Form input data harian (kWh pagi + malam per tanggal)
+- Year selector (default 2026–2028, tambah tahun via +)
+- Form input 1 row: Bulan + Tanggal + Total kWh + Simpan + Hapus
+- Input **Total kWh** saja (split day/night otomatis)
 
 ### 📊 Tahunan (Annual View)
-- KPI: total kWh & tagihan YTD, bulan tertinggi & terendah
-- Bar chart tren bulanan + line chart biaya per bulan
-- Perbandingan Semester 1 vs Semester 2
-- Tabel ringkasan semua bulan
+- KPI: total kWh & tagihan, bulan tertinggi & terendah
+- Bar chart tren bulanan + Perbandingan Semester
+- Line chart Tagihan per Bulan
+- Tabel Ringkasan Bulanan (3 kolom center, sama besar) + baris TOTAL
+- Year selector (sinkron dengan bulanan)
 
 ### 🏠 Perangkat (Devices View)
-- 8 perangkat terpantau: AC, Kulkas, TV, Mesin Cuci, Pompa Air, Lampu, Komputer, Lainnya
-- Doughnut chart proporsi konsumsi
-- Bar usage per perangkat + estimasi biaya bulanan
+- CRUD perangkat: tambah, edit, hapus (nama, ikon, kWh, warna)
+- Doughnut chart proporsi konsumsi (dinamis)
+- KPI: total perangkat, konsumen terbesar, mode aktif (Demo/Data Saya)
 
 ### ⚙️ Pengaturan Tarif
-Preset tarif PLN 2025:
+Preset tarif PLN:
 
 | Golongan | Daya | Tarif |
 |----------|------|-------|
@@ -34,29 +36,50 @@ Preset tarif PLN 2025:
 | R-6600 | 6600 VA ke atas | Rp 1.699,53/kWh |
 | Custom | — | Input manual |
 
-### 🖨️ Export PDF
-Print semua view sekaligus dengan stylesheet light-mode khusus cetak.
+### 💾 Dual LocalStorage
+Dua penyimpanan terpisah, tidak saling timpa:
+
+| Key | Mode | Isi |
+|-----|------|-----|
+| `wattMonitor_demo` | 📊 Use Demo Data | Data contoh (5 bulan + 8 perangkat) |
+| `wattMonitor_real` | 📝 Use My Data | Data real user |
+
+- Gonta-ganti mode kapan saja via tombol header
+- Masing-masing tetap aman saat switch
+- First visit → modal pilih Demo atau Mulai Kosong
+
+### 📆 Multi-Year
+- Default: 2026, 2027, 2028
+- Tombol **+ Tahun** untuk tambah tahun baru
+- Data per tahun tersimpan terpisah di localStorage
+- Year selector di view Bulanan & Tahunan
 
 ## Tech Stack
 
 - Vanilla HTML/CSS/JS — zero dependencies, zero build step
 - [Chart.js 4.4.1](https://www.chartjs.org/) — semua chart
 - Google Fonts: Space Mono + Syne
+- Web Storage API (localStorage) — persistensi data
 
 ## Cara Pakai
 
 ```bash
-# Buka langsung di browser
 open index.html
 ```
 
-Tidak perlu server, npm, atau build process. Cukup buka `index.html`.
+Tidak perlu server, npm, atau build process.
 
 ## Input Data
 
 1. Klik tab **Bulanan**
-2. Scroll ke form **Tambah Data Pemakaian**
-3. Pilih bulan & tanggal, isi kWh Pagi dan/atau kWh Malam
+2. Pilih tahun & bulan
+3. Isi tanggal + **Total kWh**
 4. Klik **Simpan**
 
-Data tersimpan di memori sesi (refresh = reset). Untuk data permanen, tambahkan ke array `monthlyData` dan `dailyData` di dalam `<script>`.
+Data otomatis tersimpan ke localStorage sesuai mode aktif (Demo/My Data).
+
+### Kelola Perangkat
+
+1. Klik tab **Perangkat**
+2. **+ Tambah** untuk perangkat baru
+3. ✏️ edit, 🗑️ hapus

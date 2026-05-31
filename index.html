@@ -159,6 +159,16 @@ canvas { max-height: 240px; }
 .month-btn.active { background: rgba(0,212,255,0.12); border-color: var(--accent); color: var(--accent); }
 .month-btn:not(.active):hover { background: var(--surface2); color: var(--text); }
 
+.year-selector { display:flex; gap:5px; flex-wrap:wrap; }
+.year-btn {
+  padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border);
+  background: transparent; color: var(--text-muted);
+  font-family: 'Space Mono', monospace; font-size: 0.75rem; font-weight: 700;
+  cursor: pointer; transition: all 0.15s;
+}
+.year-btn.active { background: var(--accent); border-color: var(--accent); color: #000; }
+.year-btn:not(.active):hover { background: var(--surface2); color: var(--text); }
+
 /* ════════════════════════════════
    DEVICE LIST
 ════════════════════════════════ */
@@ -286,91 +296,6 @@ canvas { max-height: 240px; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
 /* ════════════════════════════════
-   PRINT / PDF STYLES
-════════════════════════════════ */
-@media print {
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-
-  body {
-    background: #ffffff !important;
-    color: #1a1a2e !important;
-    font-family: 'Syne', sans-serif;
-  }
-  body::before { display: none !important; }
-
-  .no-print, header .header-right, .nav-tabs, .month-selector,
-  .add-entry, .modal-overlay, .btn-icon, .tariff-badge { display: none !important; }
-
-  .app { padding: 0 !important; max-width: 100% !important; }
-
-  .print-header {
-    display: flex !important;
-    justify-content: space-between;
-    align-items: flex-start;
-    padding-bottom: 16px;
-    border-bottom: 2px solid #1a1a2e;
-    margin-bottom: 20px;
-  }
-  .print-header h1 { font-size: 1.4rem; font-weight: 800; color: #1a1a2e; }
-  .print-header p { font-size: 0.78rem; color: #64748b; margin-top: 3px; }
-  .print-header .print-meta { text-align: right; font-size: 0.75rem; color: #64748b; font-family: 'Space Mono', monospace; }
-
-  .kpi-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 10px !important; margin-bottom: 16px !important; }
-  .kpi-card {
-    background: #f8fafc !important; border: 1px solid #e2e8f0 !important;
-    border-radius: 10px !important; padding: 14px !important;
-    break-inside: avoid;
-  }
-  .kpi-card::before { background: #0088ff !important; }
-  .kpi-label { color: #64748b !important; }
-  .kpi-value { color: #1a1a2e !important; font-size: 1.4rem !important; }
-  .kpi-unit { color: #64748b !important; }
-  .kpi-delta.up { color: #ef4444 !important; }
-  .kpi-delta.down { color: #16a34a !important; }
-
-  .main-grid { grid-template-columns: 2fr 1fr !important; gap: 12px !important; }
-  .bottom-grid { grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
-
-  .card {
-    background: #f8fafc !important; border: 1px solid #e2e8f0 !important;
-    border-radius: 10px !important; padding: 16px !important; break-inside: avoid;
-  }
-  .card-title { color: #1a1a2e !important; }
-  .card-subtitle { color: #64748b !important; }
-  .badge { background: #e0f2fe !important; color: #0284c7 !important; border-color: #bae6fd !important; }
-
-  .tariff-item { background: #f1f5f9 !important; border-radius: 8px !important; }
-  .tariff-label { color: #64748b !important; }
-  .tariff-val { color: #0088ff !important; }
-
-  canvas { max-height: 200px !important; }
-
-  .view { display: block !important; }
-  #view-monthly { page-break-after: always; }
-  #view-annually { page-break-after: always; }
-  #view-devices { page-break-after: avoid; }
-
-  /* Print section titles */
-  .view::before {
-    display: block;
-    font-size: 1rem; font-weight: 800; color: #1a1a2e;
-    text-transform: uppercase; letter-spacing: 0.08em;
-    margin-bottom: 14px; padding-bottom: 8px;
-    border-bottom: 1px solid #e2e8f0;
-  }
-  #view-monthly::before { content: 'Laporan Bulanan'; }
-  #view-annually::before { content: 'Laporan Tahunan'; }
-  #view-devices::before { content: 'Rincian Perangkat'; }
-
-  .device-row { padding: 4px 0; }
-  .device-name { color: #1a1a2e !important; }
-  .device-bar-wrap { background: #e2e8f0 !important; }
-  .device-kwh { color: #64748b !important; }
-
-  #monthly-summary-table div { color: #1a1a2e !important; border-color: #e2e8f0 !important; }
-}
-
-/* ════════════════════════════════
    SCROLLBAR
 ════════════════════════════════ */
 ::-webkit-scrollbar { width: 6px; }
@@ -379,6 +304,43 @@ canvas { max-height: 240px; }
 </style>
 </head>
 <body>
+
+<!-- ════════════ FIRST-LOAD CHOICE MODAL ════════════ -->
+<div class="modal-overlay" id="choiceModal" style="z-index:200">
+  <div class="modal" style="max-width:520px;text-align:center">
+    <div class="modal-header" style="justify-content:center">
+      <div class="modal-title">⚡ Selamat Datang di Watt Monitor</div>
+    </div>
+    <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:24px;line-height:1.6">
+      Pilih sumber data untuk memulai:
+    </p>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:8px">
+      <button class="tariff-option" onclick="chooseDemoData()" style="text-align:left;padding:16px">
+        <div style="display:flex;align-items:center;gap:14px;width:100%">
+          <span style="font-size:2rem">📊</span>
+          <div style="flex:1;text-align:left">
+            <div style="font-size:0.95rem;font-weight:700;color:var(--text);margin-bottom:4px">Gunakan Demo Data</div>
+            <div style="font-size:0.75rem;color:var(--text-muted)">Muat contoh data pemakaian 5 bulan + 8 perangkat untuk mencoba semua fitur</div>
+          </div>
+          <span style="font-size:1.2rem;color:var(--accent)">→</span>
+        </div>
+      </button>
+      <button class="tariff-option" onclick="chooseEmptyData()" style="text-align:left;padding:16px">
+        <div style="display:flex;align-items:center;gap:14px;width:100%">
+          <span style="font-size:2rem">📝</span>
+          <div style="flex:1;text-align:left">
+            <div style="font-size:0.95rem;font-weight:700;color:var(--text);margin-bottom:4px">Mulai dari Data Saya</div>
+            <div style="font-size:0.75rem;color:var(--text-muted)">Mulai kosong, isi sendiri data pemakaian listrik rumah Anda</div>
+          </div>
+          <span style="font-size:1.2rem;color:var(--text-muted)">→</span>
+        </div>
+      </button>
+    </div>
+    <p style="font-size:0.7rem;color:var(--text-muted);margin-top:12px">
+      💡 Pilihan dapat diubah kapan saja via tombol <strong>Use Demo Data</strong> atau <strong>Use My Data</strong> di pojok kanan atas
+    </p>
+  </div>
+</div>
 
 <!-- ════════════ TARIFF MODAL ════════════ -->
 <div class="modal-overlay" id="tariffModal">
@@ -405,15 +367,6 @@ canvas { max-height: 240px; }
   </div>
 </div>
 
-<!-- ════════════ PRINT HEADER (only visible on print) ════════════ -->
-<div class="print-header" style="display:none">
-  <div>
-    <h1>⚡ WATT MONITOR</h1>
-    <p>Laporan Pemakaian Listrik Rumah · 2025</p>
-  </div>
-  <div class="print-meta" id="printMeta"></div>
-</div>
-
 <div class="app">
 
   <!-- HEADER -->
@@ -422,16 +375,20 @@ canvas { max-height: 240px; }
       <div class="logo-icon">⚡</div>
       <div class="logo-text">
         <h1>WATT MONITOR</h1>
-        <p>MONITOR LISTRIK RUMAH · 2025</p>
+        <p>MONITOR LISTRIK RUMAH · <span id="header-year">2025</span></p>
       </div>
     </div>
     <div class="header-right no-print">
       <button class="tariff-badge" onclick="openModal()" title="Ubah golongan tarif">
         ⚙️ <span id="tariffBadgeLabel">R-900 · Rp1.352/kWh</span>
       </button>
-      <button class="btn-icon primary" onclick="exportPDF()">
-        🖨️ Export PDF
+      <button class="btn-icon" onclick="confirmResetDemo()" title="Beralih ke data demo (contoh)">
+        📊 Use Demo Data
       </button>
+      <button class="btn-icon" onclick="clearAllData()" title="Beralih ke data real Anda">
+        📝 Use My Data
+      </button>
+
     </div>
   </header>
 
@@ -472,49 +429,34 @@ canvas { max-height: 240px; }
       </div>
     </div>
 
+    <div style="display:flex;gap:6px;margin-bottom:12px;align-items:center">
+      <span style="font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-right:4px">Tahun</span>
+      <div class="year-selector" id="yearSelectorMonthly"></div>
+    </div>
     <div class="month-selector no-print" id="monthSelector"></div>
 
-    <div class="main-grid">
-      <div class="card">
-        <div class="card-header">
-          <div>
-            <div class="card-title">Pemakaian Harian</div>
-            <div class="card-subtitle" id="monthly-subtitle">kWh per hari</div>
-          </div>
-          <span class="badge" id="monthly-total-badge">0 kWh total</span>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Pemakaian Harian</div>
+          <div class="card-subtitle" id="monthly-subtitle">kWh per hari</div>
         </div>
-        <canvas id="dailyChart"></canvas>
+        <span class="badge" id="monthly-total-badge">0 kWh total</span>
       </div>
-      <div class="card">
-        <div class="card-header">
-          <div>
-            <div class="card-title">Distribusi Waktu</div>
-            <div class="card-subtitle">Siang vs Malam</div>
-          </div>
-        </div>
-        <canvas id="timeChart"></canvas>
-        <div style="margin-top:14px;">
-          <div class="tariff-grid">
-            <div class="tariff-item">
-              <div class="tariff-label">☀️ Pagi–Sore</div>
-              <div class="tariff-val" id="day-usage">0 kWh</div>
-            </div>
-            <div class="tariff-item">
-              <div class="tariff-label">🌙 Malam</div>
-              <div class="tariff-val" id="night-usage">0 kWh</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <canvas id="dailyChart"></canvas>
     </div>
 
     <!-- Add/Edit Entry -->
     <div class="add-entry no-print">
-      <h3 id="form-mode-label">➕ Tambah Data Pemakaian</h3>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Bulan</label>
-          <select id="inp-month" onchange="loadDayToForm()">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <h3 id="form-mode-label" style="font-size:0.85rem;font-weight:700;margin:0">➕ Tambah Data Pemakaian</h3>
+        <span id="form-year-label" style="font-size:0.65rem;color:var(--text-muted);font-family:'Space Mono',monospace">kWh · 2025</span>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:stretch">
+        <div style="flex:1;display:flex;flex-direction:column">
+          <label class="form-group" style="border:none;padding:0;margin:0;background:none;font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Bulan</label>
+          <select id="inp-month" onchange="loadDayToForm()" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'Space Mono',monospace;font-size:0.8rem;outline:none;cursor:pointer;flex:1">
             <option value="0">Januari</option><option value="1">Februari</option>
             <option value="2">Maret</option><option value="3">April</option>
             <option value="4">Mei</option><option value="5">Juni</option>
@@ -523,20 +465,19 @@ canvas { max-height: 240px; }
             <option value="10">November</option><option value="11">Desember</option>
           </select>
         </div>
-        <div class="form-group">
-          <label>Tanggal</label>
-          <input type="number" id="inp-day" min="1" max="31" placeholder="1–31" value="1" onchange="loadDayToForm()">
+
+        <div style="flex:1;display:flex;flex-direction:column">
+          <label style="font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Tanggal</label>
+          <input type="number" id="inp-day" min="1" max="31" placeholder="1–31" value="1" onchange="loadDayToForm()" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'Space Mono',monospace;font-size:0.8rem;outline:none;flex:1">
         </div>
-        <div class="form-group">
-          <label>kWh Pagi</label>
-          <input type="number" id="inp-day-kwh" step="0.1" placeholder="0.0">
+
+        <div style="flex:1.6;display:flex;flex-direction:column">
+          <label style="font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Total Pemakaian (kWh)</label>
+          <input type="number" id="inp-total-kwh" step="0.1" placeholder="0.0" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'Space Mono',monospace;font-size:0.9rem;outline:none;flex:1">
         </div>
-        <div class="form-group">
-          <label>kWh Malam</label>
-          <input type="number" id="inp-night-kwh" step="0.1" placeholder="0.0">
-        </div>
-        <button class="btn-add" onclick="addEntry()">Simpan</button>
-        <button class="btn-add" style="background:linear-gradient(135deg,#f87171,#ef4444);box-shadow:0 0 12px rgba(248,113,113,0.25)" onclick="deleteEntry()">Hapus</button>
+
+        <button class="btn-add" onclick="addEntry()" style="flex:0.8;margin-top:19px;padding:8px 0;border-radius:8px;background:linear-gradient(135deg,var(--accent),#0088ff);border:none;color:#fff;font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer;box-shadow:0 0 12px rgba(0,212,255,0.25)">Simpan</button>
+        <button class="btn-add" onclick="deleteEntry()" style="flex:0.8;margin-top:19px;padding:8px 0;border-radius:8px;background:linear-gradient(135deg,#f87171,#ef4444);border:none;color:#fff;font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer;box-shadow:0 0 12px rgba(248,113,113,0.25)">Hapus</button>
       </div>
     </div>
   </div>
@@ -546,13 +487,13 @@ canvas { max-height: 240px; }
 
     <div class="kpi-grid">
       <div class="kpi-card" style="--card-accent: var(--accent)">
-        <div class="kpi-label">Total Pemakaian 2025</div>
+        <div class="kpi-label">Total Pemakaian <span id="a-year-label">2025</span></div>
         <div class="kpi-value" id="a-kwh">0</div>
         <div class="kpi-unit">kWh</div>
-        <div class="kpi-delta" style="color:var(--text-muted)">Januari–Sekarang</div>
+        <div class="kpi-delta" style="color:var(--text-muted)" id="a-year-range">Januari–Sekarang</div>
       </div>
       <div class="kpi-card" style="--card-accent: var(--accent2)">
-        <div class="kpi-label">Total Tagihan 2025</div>
+        <div class="kpi-label">Total Tagihan <span id="a-cost-year-label">2025</span></div>
         <div class="kpi-value" id="a-cost">0</div>
         <div class="kpi-unit">Ribuan Rupiah</div>
         <div class="kpi-delta down">— estimasi</div>
@@ -571,16 +512,30 @@ canvas { max-height: 240px; }
       </div>
     </div>
 
+    <div style="display:flex;gap:6px;margin-bottom:16px;align-items:center">
+      <span style="font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-right:4px">Tahun</span>
+      <div class="year-selector" id="yearSelectorAnnual"></div>
+    </div>
+
     <div class="main-grid">
       <div class="card">
         <div class="card-header">
           <div>
             <div class="card-title">Tren Pemakaian per Bulan</div>
-            <div class="card-subtitle">kWh bulanan — 2025</div>
+            <div class="card-subtitle" id="annual-chart-subtitle">kWh bulanan — 2025</div>
           </div>
         </div>
         <canvas id="annualChart"></canvas>
       </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Perbandingan Semester</div>
+        </div>
+        <canvas id="semesterChart"></canvas>
+      </div>
+    </div>
+
+    <div class="bottom-grid" style="margin-top:16px;">
       <div class="card">
         <div class="card-header">
           <div>
@@ -589,15 +544,6 @@ canvas { max-height: 240px; }
           </div>
         </div>
         <canvas id="costChart"></canvas>
-      </div>
-    </div>
-
-    <div class="bottom-grid" style="margin-top:16px;">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Perbandingan Semester</div>
-        </div>
-        <canvas id="semesterChart"></canvas>
       </div>
       <div class="card">
         <div class="card-header">
@@ -614,18 +560,18 @@ canvas { max-height: 240px; }
     <div class="kpi-grid">
       <div class="kpi-card" style="--card-accent: var(--accent)">
         <div class="kpi-label">Total Perangkat</div>
-        <div class="kpi-value">8</div>
+        <div class="kpi-value" id="dev-total-count">0</div>
         <div class="kpi-unit">unit terpantau</div>
       </div>
       <div class="kpi-card" style="--card-accent: var(--accent2)">
         <div class="kpi-label">Konsumen Terbesar</div>
-        <div class="kpi-value">AC</div>
-        <div class="kpi-unit">~42% total pemakaian</div>
+        <div class="kpi-value" id="dev-top-name">—</div>
+        <div class="kpi-unit" id="dev-top-pct">—</div>
       </div>
       <div class="kpi-card" style="--card-accent: var(--green)">
-        <div class="kpi-label">Perangkat Aktif</div>
-        <div class="kpi-value">5</div>
-        <div class="kpi-unit">sedang menyala</div>
+        <div class="kpi-label">Disimpan di</div>
+        <div class="kpi-value" style="font-size:1.1rem">💾</div>
+        <div class="kpi-unit" id="dev-storage-mode">localStorage · data aman</div>
       </div>
       <div class="kpi-card" style="--card-accent: var(--accent3)">
         <div class="kpi-label">Biaya Perangkat/Bln</div>
@@ -645,8 +591,32 @@ canvas { max-height: 240px; }
       <div class="card">
         <div class="card-header">
           <div class="card-title">Detail Perangkat</div>
+          <button class="badge" style="cursor:pointer;background:rgba(0,212,255,0.12);border-color:var(--accent);color:var(--accent)" onclick="openDeviceForm()">+ Tambah</button>
         </div>
         <div class="device-list" id="deviceList"></div>
+        <div class="add-entry no-print" id="deviceForm" style="display:none;margin-top:14px">
+          <h3 id="device-form-title">➕ Tambah Perangkat</h3>
+          <div class="form-row">
+            <div class="form-group" style="flex:2">
+              <label>Nama Perangkat</label>
+              <input type="text" id="inp-dev-name" placeholder="Contoh: AC Kamar">
+            </div>
+            <div class="form-group">
+              <label>Ikon</label>
+              <input type="text" id="inp-dev-icon" placeholder="🔌" style="text-align:center">
+            </div>
+            <div class="form-group">
+              <label>kWh / Bulan</label>
+              <input type="number" id="inp-dev-kwh" step="0.1" placeholder="0">
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>Warna</label>
+              <input type="color" id="inp-dev-color" value="#00d4ff">
+            </div>
+            <button class="btn-add" onclick="saveDevice()">Simpan</button>
+            <button class="btn-add" style="background:linear-gradient(135deg,#f87171,#ef4444);box-shadow:0 0 12px rgba(248,113,113,0.25)" onclick="cancelDeviceForm()">Batal</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -733,6 +703,7 @@ const DEVICES = [
 //  STATE
 // ══════════════════════════════════════════════
 let activeMonth = 4;
+let activeYear = new Date().getFullYear();
 let charts = {};
 
 // ══════════════════════════════════════════════
@@ -823,25 +794,6 @@ function saveTariff() {
 }
 
 // ══════════════════════════════════════════════
-//  PDF EXPORT
-// ══════════════════════════════════════════════
-function exportPDF() {
-  // Fill print header meta
-  const rate = getCurrentRate();
-  const now = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-  document.getElementById('printMeta').innerHTML =
-    `Dicetak: ${now}<br>Tarif: ${selectedTariffKey} · Rp ${rate.toLocaleString('id-ID')}/kWh<br>Tahun: 2025`;
-
-  // Make sure all views are rendered before print
-  renderMonthlyView();
-  renderAnnualView();
-  renderDevicesView();
-
-  // Short delay for charts to render, then print
-  setTimeout(() => window.print(), 400);
-}
-
-// ══════════════════════════════════════════════
 //  MONTHLY VIEW
 // ══════════════════════════════════════════════
 function renderMonthSelector() {
@@ -858,7 +810,38 @@ function renderMonthSelector() {
   });
 }
 
+function renderYearSelector() {
+  const y = activeYear;
+  const raw = localStorage.getItem(getStorageKey());
+  const saved = raw ? JSON.parse(raw) : {};
+  const savedYears = saved.years ? Object.keys(saved.years).map(Number) : [];
+  const defaults = [2026, 2027, 2028];
+  const allYears = [...new Set([...defaults, ...savedYears])].filter(yr => yr >= 2026).sort();
+  ['yearSelectorMonthly', 'yearSelectorAnnual'].forEach(id => {
+    const wrap = document.getElementById(id);
+    if (!wrap) return;
+    wrap.innerHTML = allYears.map(yr =>
+      `<button class="year-btn ${yr === y ? 'active' : ''}" onclick="switchYear(${yr})">${yr}</button>`
+    ).join('') +
+      `<button class="year-btn" onclick="addYear()" style="color:#fff;background:var(--accent2);border-color:var(--accent2);font-size:0.75rem;padding:4px 10px;opacity:0.7" title="Tambah tahun baru">+ Tahun</button>`;
+  });
+}
+
+function addYear() {
+  const input = prompt('Masukkan tahun baru (cth: 2031):');
+  if (!input) return;
+  const yr = parseInt(input);
+  if (isNaN(yr) || yr < 2020 || yr > 2100) { alert('Tahun tidak valid (2020–2100)'); return; }
+  saveToStorage();
+  activeYear = yr;
+  zeroState(yr);
+  saveToStorage();
+  const activeView = document.querySelector('.view.active').id.replace('view-', '');
+  switchView(activeView);
+}
+
 function renderMonthlyView() {
+  renderYearSelector();
   renderMonthSelector();
   const d = monthlyData[activeMonth];
   const prev = activeMonth > 0 ? monthlyData[activeMonth - 1] : null;
@@ -879,11 +862,8 @@ function renderMonthlyView() {
     el.textContent = (pct > 0 ? '▲ ' : '▼ ') + Math.abs(pct) + '% vs bulan lalu';
     el.className = 'kpi-delta ' + (pct > 0 ? 'up' : 'down');
   }
-  document.getElementById('monthly-subtitle').textContent = `kWh per hari — ${MONTH_FULL[activeMonth]} 2025`;
+  document.getElementById('monthly-subtitle').textContent = `kWh per hari — ${MONTH_FULL[activeMonth]} ${activeYear}`;
   document.getElementById('monthly-total-badge').textContent = d.total + ' kWh total';
-  document.getElementById('day-usage').textContent = d.day + ' kWh';
-  document.getElementById('night-usage').textContent = d.night + ' kWh';
-
   destroyChart('daily');
   const avg = d.total / daily.length;
   charts['daily'] = new Chart(document.getElementById('dailyChart'), {
@@ -900,25 +880,66 @@ function renderMonthlyView() {
     options: { responsive: true, plugins: { ...CHART_DEFAULTS.plugins, legend: { display: false } }, scales: CHART_DEFAULTS.scales }
   });
 
-  destroyChart('time');
-  charts['time'] = new Chart(document.getElementById('timeChart'), {
-    type: 'doughnut',
-    data: {
-      labels: ['Pagi–Sore', 'Malam'],
-      datasets: [{ data: [d.day || 1, d.night || 1], backgroundColor: ['rgba(0,212,255,0.7)','rgba(167,139,250,0.7)'], borderColor: ['#00d4ff','#a78bfa'], borderWidth: 2 }]
-    },
-    options: { responsive: true, cutout: '65%', plugins: CHART_DEFAULTS.plugins }
-  });
 }
 
 // ══════════════════════════════════════════════
 //  ANNUAL VIEW
 // ══════════════════════════════════════════════
 function renderAnnualView() {
+  renderYearSelector();
+  document.getElementById('a-year-range').textContent =
+    `Januari–Desember ${activeYear}`;
+  document.getElementById('a-year-label').textContent = activeYear;
+  document.getElementById('a-cost-year-label').textContent = activeYear;
+  document.getElementById('annual-chart-subtitle').textContent = `kWh bulanan — ${activeYear}`;
+  document.getElementById('annual-cost-subtitle').textContent = `Estimasi biaya (Rp) — ${selectedTariffKey}`;
+
+  destroyChart('annual');
+  destroyChart('cost');
+  destroyChart('semester');
+
   const totals = monthlyData.map(d => d.total);
   const costs = totals.map(v => calcCost(v));
   const filled = totals.filter(v => v > 0);
-  if (!filled.length) return;
+
+  if (!filled.length) {
+    document.getElementById('a-kwh').textContent = '0';
+    document.getElementById('a-cost').textContent = fmtK(0);
+    document.getElementById('a-peak-month').textContent = '—';
+    document.getElementById('a-peak-kwh').textContent = '0 kWh';
+    document.getElementById('a-low-month').textContent = '—';
+    document.getElementById('a-low-kwh').textContent = '0 kWh';
+    charts['annual'] = new Chart(document.getElementById('annualChart'), {
+      type: 'bar',
+      data: { labels: MONTHS, datasets: [{ label: 'kWh', data: totals, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: '#1e2d45', borderWidth: 1, borderRadius: 5 }] },
+      options: { responsive: true, plugins: { ...CHART_DEFAULTS.plugins, legend: { display: false } }, scales: CHART_DEFAULTS.scales }
+    });
+    charts['cost'] = new Chart(document.getElementById('costChart'), {
+      type: 'line',
+      data: { labels: MONTHS, datasets: [{ label: 'Biaya (Rp)', data: costs, borderColor: '#1e2d45', backgroundColor: 'transparent', fill: false, pointRadius: 0 }] },
+      options: { responsive: true, plugins: { ...CHART_DEFAULTS.plugins, tooltip: { ...CHART_DEFAULTS.plugins.tooltip, callbacks: { label: ctx => 'Rp ' + Math.round(ctx.raw).toLocaleString('id-ID') } } }, scales: CHART_DEFAULTS.scales }
+    });
+    charts['semester'] = new Chart(document.getElementById('semesterChart'), {
+      type: 'bar',
+      data: { labels: ['Semester 1 (Jan–Jun)', 'Semester 2 (Jul–Des)'], datasets: [{ label: 'kWh', data: [0, 0], backgroundColor: ['rgba(255,255,255,0.03)','rgba(255,255,255,0.03)'], borderColor: '#1e2d45', borderWidth: 1, borderRadius: 8 }] },
+      options: { responsive: true, plugins: { ...CHART_DEFAULTS.plugins, legend: { display: false } }, scales: CHART_DEFAULTS.scales }
+    });
+    const emptyCells = MONTH_FULL.map(m =>
+      `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--border)">
+        <div style="padding:5px 8px;font-size:0.72rem;color:#1e2d45;text-align:center">${m}</div>
+        <div style="padding:5px 8px;font-size:0.72rem;color:#1e2d45;text-align:center">—</div>
+        <div style="padding:5px 8px;font-size:0.72rem;color:#1e2d45;text-align:center">—</div>
+      </div>`
+    ).join('');
+    document.getElementById('monthly-summary-table').innerHTML =
+      `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:2px solid var(--border);margin-bottom:2px">
+        <div style="padding:5px 8px;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);text-align:center">Bulan</div>
+        <div style="padding:5px 8px;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);text-align:center">Pemakaian</div>
+        <div style="padding:5px 8px;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);text-align:center">Estimasi</div>
+      </div>` + emptyCells;
+    return;
+  }
+
   const total = filled.reduce((a, b) => a + b, 0);
   const totalCost = calcCost(total);
   const peakIdx = totals.indexOf(Math.max(...filled));
@@ -931,9 +952,6 @@ function renderAnnualView() {
   document.getElementById('a-peak-kwh').textContent = Math.max(...filled) + ' kWh';
   document.getElementById('a-low-month').textContent = MONTHS[lowIdx];
   document.getElementById('a-low-kwh').textContent = lowVal + ' kWh';
-  document.getElementById('annual-cost-subtitle').textContent = `Estimasi biaya (Rp) — ${selectedTariffKey}`;
-
-  destroyChart('annual');
   charts['annual'] = new Chart(document.getElementById('annualChart'), {
     type: 'bar',
     data: {
@@ -974,14 +992,31 @@ function renderAnnualView() {
 
   // Summary table
   const tbl = document.getElementById('monthly-summary-table');
+  const grandTotal = totals.reduce((a, b) => a + b, 0);
+  const grandCost = calcCost(grandTotal);
+  const hasAny = filled.length > 0;
+  const th = (label, align) => `<div style="padding:5px 8px;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);text-align:${align}">${label}</div>`;
+  const td = (content, align, color) => `<div style="padding:5px 8px;font-size:0.72rem;text-align:${align};${color || 'color:var(--text)'}">${content}</div>`;
   const rows = totals.map((v, i) => {
     const c = calcCost(v);
-    const style = v === 0 ? 'color:#1e2d45' : (v === Math.max(...filled) ? 'color:#ff6b35' : 'color:#e2e8f0');
-    return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1e2d45;${style}">
-      <span>${MONTH_FULL[i]}</span><span>${v > 0 ? v + ' kWh' : '—'}</span><span>${v > 0 ? fmtK(c) : '—'}</span>
+    const isPeak = hasAny && v === Math.max(...filled);
+    const color = v === 0 ? 'color:#1e2d45' : (isPeak ? 'color:#ff6b35;font-weight:700' : 'color:var(--text)');
+    return `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--border)">
+      ${td(MONTH_FULL[i], 'center', color)}
+      ${td(v > 0 ? v.toFixed(1) + ' kWh' : '—', 'center', color)}
+      ${td(v > 0 ? 'Rp' + Math.round(c).toLocaleString('id-ID') : '—', 'center', color)}
     </div>`;
   }).join('');
-  tbl.innerHTML = `<div style="display:flex;justify-content:space-between;padding:4px 0 8px;border-bottom:1px solid #1e2d45;color:#64748b;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em"><span>Bulan</span><span>kWh</span><span>Estimasi</span></div>` + rows;
+  tbl.innerHTML =
+    `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:2px solid var(--border);margin-bottom:2px">
+      ${th('Bulan', 'center')}${th('Pemakaian', 'center')}${th('Estimasi', 'center')}
+    </div>` +
+    rows +
+    `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-top:2px solid var(--accent);margin-top:2px;background:rgba(0,212,255,0.05)">
+      ${td('TOTAL', 'center', 'color:var(--accent);font-weight:700;font-size:0.78rem')}
+      ${td(grandTotal.toFixed(1) + ' kWh', 'center', 'color:var(--accent);font-weight:700;font-size:0.78rem')}
+      ${td('Rp' + Math.round(grandCost).toLocaleString('id-ID'), 'center', 'color:var(--accent);font-weight:700;font-size:0.78rem')}
+    </div>`;
 }
 
 // ══════════════════════════════════════════════
@@ -989,7 +1024,14 @@ function renderAnnualView() {
 // ══════════════════════════════════════════════
 function renderDevicesView() {
   const total = DEVICES.reduce((a, d) => a + d.kwh, 0);
+  document.getElementById('dev-total-count').textContent = DEVICES.length;
   document.getElementById('dev-total-cost').textContent = fmtK(calcCost(total));
+  document.getElementById('dev-storage-mode').textContent = activeMode === 'demo' ? '📊 Demo Data' : '📝 Data Saya';
+  if (DEVICES.length > 0) {
+    const top = DEVICES.reduce((a, b) => a.kwh > b.kwh ? a : b);
+    document.getElementById('dev-top-name').textContent = top.name.split('(')[0].trim();
+    document.getElementById('dev-top-pct').textContent = `~${((top.kwh/total)*100).toFixed(0)}% total`;
+  }
 
   destroyChart('device');
   charts['device'] = new Chart(document.getElementById('deviceChart'), {
@@ -1004,14 +1046,20 @@ function renderDevicesView() {
     }
   });
 
-  document.getElementById('deviceList').innerHTML = DEVICES.map(d => `
+  document.getElementById('deviceList').innerHTML = DEVICES.map((d, i) => `
     <div class="device-row">
       <div class="device-icon">${d.icon}</div>
       <div class="device-info">
         <div class="device-name">${d.name}</div>
         <div class="device-bar-wrap"><div class="device-bar" style="width:${(d.kwh/total*100).toFixed(0)}%;background:${d.color}"></div></div>
       </div>
-      <div class="device-kwh">${d.kwh} kWh<br><span style="font-size:0.65rem;color:#64748b">${((d.kwh/total)*100).toFixed(1)}%</span></div>
+      <div style="text-align:right;flex-shrink:0">
+        <div class="device-kwh">${d.kwh} kWh</div>
+        <div style="display:flex;gap:4px;margin-top:4px;justify-content:flex-end">
+          <span style="font-size:0.65rem;color:var(--accent);cursor:pointer" onclick="openDeviceForm(DEVICES[${i}])">✏️</span>
+          <span style="font-size:0.65rem;color:var(--red);cursor:pointer" onclick="deleteDevice(${i})">🗑️</span>
+        </div>
+      </div>
     </div>
   `).join('');
 }
@@ -1047,12 +1095,10 @@ function loadDayToForm() {
   if (!day || day < 1 || day > 31) return;
   const split = dailySplit[m]?.[day - 1];
   if (split && (split.day > 0 || split.night > 0)) {
-    document.getElementById('inp-day-kwh').value   = split.day   || '';
-    document.getElementById('inp-night-kwh').value = split.night || '';
+    document.getElementById('inp-total-kwh').value = (split.day + split.night).toFixed(1);
     label.textContent = '✏️ Edit Data Pemakaian';
   } else {
-    document.getElementById('inp-day-kwh').value   = '';
-    document.getElementById('inp-night-kwh').value = '';
+    document.getElementById('inp-total-kwh').value = '';
     label.textContent = '➕ Tambah Data Pemakaian';
   }
 }
@@ -1060,20 +1106,22 @@ function loadDayToForm() {
 function addEntry() {
   const m     = +document.getElementById('inp-month').value;
   const day   = +document.getElementById('inp-day').value;
-  const dayK  = +document.getElementById('inp-day-kwh').value   || 0;
-  const nightK= +document.getElementById('inp-night-kwh').value || 0;
-  if (!dayK && !nightK || day < 1 || day > 31) { alert('Masukkan data yang valid!'); return; }
+  const totalK = +document.getElementById('inp-total-kwh').value || 0;
+  if (!totalK || day < 1 || day > 31) { alert('Masukkan data yang valid!'); return; }
   const maxDays = [31,28,31,30,31,30,31,31,30,31,30,31][m];
   if (day > maxDays) { alert(`Bulan ${MONTH_FULL[m]} hanya ${maxDays} hari!`); return; }
   const idx = day - 1;
+  const monthTotal = monthlyData[m].total;
+  const dayFrac = monthTotal ? monthlyData[m].day / monthTotal : 0.6;
+  const dayK  = +(totalK * dayFrac).toFixed(1);
+  const nightK= +(totalK - dayK).toFixed(1);
   dailySplit[m][idx] = { day: dayK, night: nightK };
-  dailyData[m][idx]  = dayK + nightK;
+  dailyData[m][idx]  = totalK;
   recalcMonthly(m);
   activeMonth = m;
   saveToStorage();
   renderMonthlyView();
-  document.getElementById('inp-day-kwh').value   = '';
-  document.getElementById('inp-night-kwh').value = '';
+  document.getElementById('inp-total-kwh').value = '';
   document.getElementById('form-mode-label').textContent = '➕ Tambah Data Pemakaian';
 }
 
@@ -1088,45 +1136,284 @@ function deleteEntry() {
   activeMonth = m;
   saveToStorage();
   renderMonthlyView();
-  document.getElementById('inp-day-kwh').value   = '';
-  document.getElementById('inp-night-kwh').value = '';
+  document.getElementById('inp-total-kwh').value = '';
   document.getElementById('form-mode-label').textContent = '➕ Tambah Data Pemakaian';
 }
 
 // ══════════════════════════════════════════════
 //  LOCAL STORAGE PERSISTENCE
 // ══════════════════════════════════════════════
-const LS_KEY = 'wattMonitor_v1';
+const LS_KEY_DEMO  = 'wattMonitor_demo';
+const LS_KEY_REAL  = 'wattMonitor_real';
+const LS_KEY_PREFS = 'wattMonitor_prefs';
+let activeMode = 'real';
+
+function getStorageKey() { return activeMode === 'demo' ? LS_KEY_DEMO : LS_KEY_REAL; }
 
 function saveToStorage() {
-  localStorage.setItem(LS_KEY, JSON.stringify({ monthlyData, dailyData, dailySplit, selectedTariffKey, customRate }));
+  const key = getStorageKey();
+  const existing = JSON.parse(localStorage.getItem(key) || '{}');
+  const years = existing.years || {};
+  years[activeYear] = { monthlyData, dailyData, dailySplit };
+  localStorage.setItem(key, JSON.stringify({
+    years,
+    activeYear,
+    selectedTariffKey,
+    customRate,
+    devices: DEVICES
+  }));
 }
 
 function loadFromStorage() {
+  const key = getStorageKey();
   try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return;
+    const raw = localStorage.getItem(key);
+    if (!raw) { zeroState(); return; }
     const saved = JSON.parse(raw);
-    if (saved.monthlyData) saved.monthlyData.forEach((d, i) => { monthlyData[i] = d; });
-    if (saved.dailyData)   saved.dailyData.forEach((d, i)   => { dailyData[i]   = d; });
-    if (saved.dailySplit)  saved.dailySplit.forEach((d, i)  => { dailySplit[i]  = d; });
+    if (saved.activeYear) activeYear = saved.activeYear;
+    const yearData = saved.years?.[activeYear];
+    if (yearData) {
+      if (yearData.monthlyData) yearData.monthlyData.forEach((d, i) => { monthlyData[i] = d; });
+      if (yearData.dailyData)   yearData.dailyData.forEach((d, i)   => { dailyData[i]   = d; });
+      if (yearData.dailySplit)  yearData.dailySplit.forEach((d, i)  => { dailySplit[i]  = d; });
+    }
     if (saved.selectedTariffKey) selectedTariffKey = saved.selectedTariffKey;
     if (typeof saved.customRate === 'number') customRate = saved.customRate;
+    if (saved.devices?.length) {
+      DEVICES.length = 0;
+      saved.devices.forEach(d => DEVICES.push(d));
+    }
+  } catch(e) { console.warn('Gagal baca localStorage', e); }
+}
+
+function savePrefs() {
+  localStorage.setItem(LS_KEY_PREFS, JSON.stringify({ activeMode }));
+}
+
+function loadPrefs() {
+  try {
+    const raw = localStorage.getItem(LS_KEY_PREFS);
+    if (raw) { const p = JSON.parse(raw); if (p.activeMode) activeMode = p.activeMode; }
   } catch(e) {}
+}
+
+function switchYear(year) {
+  if (year === activeYear) return;
+  saveToStorage();
+  activeYear = year;
+  document.getElementById('header-year').textContent = activeYear;
+  document.getElementById('form-year-label').textContent = `kWh · ${activeYear}`;
+  const key = getStorageKey();
+  const raw = localStorage.getItem(key);
+  const saved = raw ? JSON.parse(raw) : {};
+  const yearData = saved.years?.[year];
+  if (yearData) {
+    yearData.monthlyData.forEach((d, i) => { monthlyData[i] = d; });
+    yearData.dailyData.forEach((d, i)   => { dailyData[i]   = d; });
+    yearData.dailySplit.forEach((d, i)  => { dailySplit[i]  = d; });
+  } else {
+    zeroState(year);
+  }
+  const activeView = document.querySelector('.view.active').id.replace('view-', '');
+  switchView(activeView);
+}
+
+function seedDemoData() {
+  activeYear = new Date().getFullYear();
+  const demoMonthly = [
+    { total: 285, day: 165, night: 120 },
+    { total: 262, day: 152, night: 110 },
+    { total: 298, day: 175, night: 123 },
+    { total: 310, day: 181, night: 129 },
+    { total: 327, day: 190, night: 137 },
+    { total: 0, day: 0, night: 0 },
+    { total: 0, day: 0, night: 0 },
+    { total: 0, day: 0, night: 0 },
+    { total: 0, day: 0, night: 0 },
+    { total: 0, day: 0, night: 0 },
+    { total: 0, day: 0, night: 0 },
+    { total: 0, day: 0, night: 0 },
+  ];
+  const demoDevices = [
+    { name: 'AC (2 unit)',      icon: '❄️', kwh: 137, color: '#00d4ff' },
+    { name: 'Kulkas',           icon: '🧊', kwh: 42,  color: '#a78bfa' },
+    { name: 'TV & Set-top Box', icon: '📺', kwh: 28,  color: '#ff6b35' },
+    { name: 'Mesin Cuci',       icon: '🌀', kwh: 24,  color: '#22d3a0' },
+    { name: 'Pompa Air',        icon: '💧', kwh: 19,  color: '#60a5fa' },
+    { name: 'Lampu',            icon: '💡', kwh: 31,  color: '#fbbf24' },
+    { name: 'Komputer/Laptop',  icon: '💻', kwh: 22,  color: '#f472b6' },
+    { name: 'Lainnya',          icon: '🔌', kwh: 24,  color: '#6b7280' },
+  ];
+  demoMonthly.forEach((d, i) => { monthlyData[i] = d; });
+  const newDaily = demoMonthly.map((dm, i) => generateDailyData(i, dm.total));
+  const newSplit = demoMonthly.map((_, m) => {
+    const total = monthlyData[m].total;
+    const dayFrac = total ? monthlyData[m].day / total : 0.6;
+    return newDaily[m].map(v => ({
+      day: +(v * dayFrac).toFixed(1),
+      night: +(v * (1 - dayFrac)).toFixed(1)
+    }));
+  });
+  newDaily.forEach((d, i) => { dailyData[i] = d; });
+  newSplit.forEach((d, i) => { dailySplit[i] = d; });
+  DEVICES.length = 0;
+  demoDevices.forEach(d => DEVICES.push(d));
+  selectedTariffKey = 'R-900';
+  customRate = 1352;
+  saveToStorage();
+}
+
+function switchToMode(mode) {
+  if (mode === activeMode) { switchViewCurrent(); return; }
+  saveToStorage();
+  activeMode = mode;
+  const key = getStorageKey();
+  const hasData = !!localStorage.getItem(key);
+  if (hasData) {
+    loadFromStorage();
+  } else if (mode === 'demo') {
+    seedDemoData();
+  } else {
+    zeroState();
+    saveToStorage();
+  }
+  savePrefs();
+  switchViewCurrent();
+}
+
+function switchViewCurrent() {
+  const rate = getCurrentRate();
+  document.getElementById('tariffBadgeLabel').textContent =
+    `${selectedTariffKey} · Rp${rate.toLocaleString('id-ID')}/kWh`;
+  const activeView = document.querySelector('.view.active').id.replace('view-', '');
+  switchView(activeView);
+}
+
+function clearAllData() {
+  switchToMode('real');
+}
+
+function confirmResetDemo() {
+  switchToMode('demo');
+}
+
+// ══════════════════════════════════════════════
+//  FIRST-LOAD CHOICE
+// ══════════════════════════════════════════════
+function zeroState(year) {
+  if (year) activeYear = year;
+  for (let i = 0; i < 12; i++) {
+    monthlyData[i] = { total: 0, day: 0, night: 0 };
+    const days = [31,28,31,30,31,30,31,31,30,31,30,31][i];
+    dailyData[i] = Array(days).fill(0);
+    dailySplit[i] = Array(days).fill(null).map(() => ({ day: 0, night: 0 }));
+  }
+  DEVICES.length = 0;
+  selectedTariffKey = 'R-900';
+  customRate = 1352;
+}
+
+function closeChoiceModal() {
+  document.getElementById('choiceModal').classList.remove('open');
+}
+
+function chooseDemoData() {
+  activeMode = 'demo';
+  seedDemoData();
+  savePrefs();
+  closeChoiceModal();
+  finalizeInit();
+}
+
+function chooseEmptyData() {
+  activeMode = 'real';
+  zeroState();
+  saveToStorage();
+  savePrefs();
+  closeChoiceModal();
+  finalizeInit();
+}
+
+function finalizeInit() {
+  document.getElementById('header-year').textContent = activeYear;
+  document.getElementById('form-year-label').textContent = `kWh · ${activeYear}`;
+  const rate = getCurrentRate();
+  document.getElementById('tariffBadgeLabel').textContent =
+    `${selectedTariffKey} · Rp${rate.toLocaleString('id-ID')}/kWh`;
+  renderMonthlyView();
+}
+
+// ══════════════════════════════════════════════
+//  DEVICE CRUD
+// ══════════════════════════════════════════════
+let deviceEditIdx = -1;
+
+function openDeviceForm(data) {
+  const form = document.getElementById('deviceForm');
+  form.style.display = 'block';
+  document.getElementById('device-form-title').textContent = data ? '✏️ Edit Perangkat' : '➕ Tambah Perangkat';
+
+  if (data) {
+    document.getElementById('inp-dev-name').value  = data.name;
+    document.getElementById('inp-dev-icon').value  = data.icon;
+    document.getElementById('inp-dev-kwh').value   = data.kwh;
+    document.getElementById('inp-dev-color').value = data.color;
+    deviceEditIdx = DEVICES.indexOf(data);
+  } else {
+    document.getElementById('inp-dev-name').value  = '';
+    document.getElementById('inp-dev-icon').value  = '🔌';
+    document.getElementById('inp-dev-kwh').value   = '';
+    document.getElementById('inp-dev-color').value = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6,'0');
+    deviceEditIdx = -1;
+  }
+}
+
+function cancelDeviceForm() {
+  document.getElementById('deviceForm').style.display = 'none';
+  deviceEditIdx = -1;
+}
+
+function saveDevice() {
+  const name  = document.getElementById('inp-dev-name').value.trim();
+  const icon  = document.getElementById('inp-dev-icon').value.trim() || '🔌';
+  const kwh   = +document.getElementById('inp-dev-kwh').value || 0;
+  const color = document.getElementById('inp-dev-color').value;
+  if (!name) { alert('Nama perangkat wajib diisi!'); return; }
+  if (kwh <= 0) { alert('kWh harus lebih dari 0!'); return; }
+
+  const dev = { name, icon, kwh, color };
+  if (deviceEditIdx >= 0 && deviceEditIdx < DEVICES.length) {
+    DEVICES[deviceEditIdx] = dev;
+  } else {
+    DEVICES.push(dev);
+  }
+  saveToStorage();
+  cancelDeviceForm();
+  renderDevicesView();
+}
+
+function deleteDevice(index) {
+  if (index < 0 || index >= DEVICES.length) return;
+  const d = DEVICES[index];
+  if (!confirm(`Hapus perangkat "${d.name}"?`)) return;
+  DEVICES.splice(index, 1);
+  saveToStorage();
+  renderDevicesView();
 }
 
 // ══════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════
+loadPrefs();
 loadFromStorage();
-(function() {
-  const rate = getCurrentRate();
-  const label = selectedTariffKey === 'custom'
-    ? `Custom · Rp${rate.toLocaleString('id-ID')}/kWh`
-    : `${selectedTariffKey} · Rp${rate.toLocaleString('id-ID')}/kWh`;
-  document.getElementById('tariffBadgeLabel').textContent = label;
-})();
-renderMonthlyView();
+
+const hasAnyData = !!localStorage.getItem(LS_KEY_DEMO) || !!localStorage.getItem(LS_KEY_REAL);
+
+if (!hasAnyData) {
+  document.getElementById('choiceModal').classList.add('open');
+} else {
+  finalizeInit();
+}
 </script>
 </body>
 </html>
