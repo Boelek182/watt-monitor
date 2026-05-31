@@ -806,6 +806,7 @@ function saveTariff() {
     : `${selectedTariffKey} · Rp${rate.toLocaleString('id-ID')}/kWh`;
   document.getElementById('tariffBadgeLabel').textContent = label;
 
+  saveToStorage();
   closeModal();
   // Refresh active view
   const activeView = document.querySelector('.view.active').id.replace('view-', '');
@@ -1037,14 +1038,44 @@ function addEntry() {
   monthlyData[m].day += dayK;
   monthlyData[m].night += nightK;
   activeMonth = m;
+  saveToStorage();
   renderMonthlyView();
   document.getElementById('inp-day-kwh').value = '';
   document.getElementById('inp-night-kwh').value = '';
 }
 
 // ══════════════════════════════════════════════
+//  LOCAL STORAGE PERSISTENCE
+// ══════════════════════════════════════════════
+const LS_KEY = 'wattMonitor_v1';
+
+function saveToStorage() {
+  localStorage.setItem(LS_KEY, JSON.stringify({ monthlyData, dailyData, selectedTariffKey, customRate }));
+}
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    if (saved.monthlyData) saved.monthlyData.forEach((d, i) => { monthlyData[i] = d; });
+    if (saved.dailyData) saved.dailyData.forEach((d, i) => { dailyData[i] = d; });
+    if (saved.selectedTariffKey) selectedTariffKey = saved.selectedTariffKey;
+    if (typeof saved.customRate === 'number') customRate = saved.customRate;
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════
+loadFromStorage();
+(function() {
+  const rate = getCurrentRate();
+  const label = selectedTariffKey === 'custom'
+    ? `Custom · Rp${rate.toLocaleString('id-ID')}/kWh`
+    : `${selectedTariffKey} · Rp${rate.toLocaleString('id-ID')}/kWh`;
+  document.getElementById('tariffBadgeLabel').textContent = label;
+})();
 renderMonthlyView();
 </script>
 </body>
