@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ Watt Monitor — Monitor Listrik Rumah</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ════════════════════════════════
+   CSS VARIABLES & RESET
+════════════════════════════════ */
+:root {
+  --bg: #0a0e1a;
+  --surface: #111827;
+  --surface2: #1a2235;
+  --border: #1e2d45;
+  --accent: #00d4ff;
+  --accent2: #ff6b35;
+  --accent3: #a78bfa;
+  --green: #22d3a0;
+  --red: #f87171;
+  --text: #e2e8f0;
+  --text-muted: #64748b;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none; z-index: 0;
+}
+.app { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
+
+/* ════════════════════════════════
+   HEADER
+════════════════════════════════ */
+header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 28px; flex-wrap: wrap; gap: 12px;
+}
+.logo { display: flex; align-items: center; gap: 12px; }
+.logo-icon {
+  width: 42px; height: 42px;
+  background: linear-gradient(135deg, var(--accent), #0066ff);
+  border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  font-size: 20px; box-shadow: 0 0 20px rgba(0,212,255,0.4);
+}
+.logo-text h1 { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.02em; }
+.logo-text p { font-size: 0.72rem; color: var(--text-muted); font-family: 'Space Mono', monospace; }
+.header-right { display: flex; align-items: center; gap: 10px; }
+
+/* Tariff badge in header */
+.tariff-badge {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(167,139,250,0.1);
+  border: 1px solid rgba(167,139,250,0.3);
+  border-radius: 20px; padding: 5px 12px;
+  font-size: 0.72rem; font-family: 'Space Mono', monospace; color: var(--accent3);
+  cursor: pointer; transition: all 0.2s;
+}
+.tariff-badge:hover { background: rgba(167,139,250,0.2); }
+
+/* Header action buttons */
+.btn-icon {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 14px; border-radius: 9px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text-muted);
+  font-family: 'Syne', sans-serif; font-size: 0.8rem; font-weight: 600;
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-icon:hover { background: var(--surface2); color: var(--text); border-color: rgba(0,212,255,0.3); }
+.btn-icon.primary {
+  background: linear-gradient(135deg, var(--accent), #0088ff);
+  color: #fff; border-color: transparent;
+  box-shadow: 0 0 14px rgba(0,212,255,0.3);
+}
+.btn-icon.primary:hover { opacity: 0.9; }
+
+/* ════════════════════════════════
+   NAV TABS
+════════════════════════════════ */
+.nav-tabs {
+  display: flex; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 12px;
+  padding: 5px; gap: 4px; margin-bottom: 24px; width: fit-content;
+}
+.nav-tab {
+  padding: 8px 22px; border-radius: 8px; border: none;
+  background: transparent; color: var(--text-muted);
+  font-family: 'Syne', sans-serif; font-size: 0.85rem; font-weight: 600;
+  cursor: pointer; transition: all 0.2s; letter-spacing: 0.02em;
+}
+.nav-tab.active {
+  background: linear-gradient(135deg, var(--accent), #0088ff);
+  color: #fff; box-shadow: 0 0 16px rgba(0,212,255,0.35);
+}
+.nav-tab:not(.active):hover { background: var(--surface2); color: var(--text); }
+
+/* ════════════════════════════════
+   KPI CARDS
+════════════════════════════════ */
+.kpi-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 14px; margin-bottom: 24px;
+}
+@media (max-width: 768px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+.kpi-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 18px; position: relative; overflow: hidden;
+  transition: transform 0.2s, border-color 0.2s;
+}
+.kpi-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 2px; background: var(--card-accent, var(--accent)); opacity: 0.8;
+}
+.kpi-card:hover { transform: translateY(-2px); border-color: rgba(0,212,255,0.2); }
+.kpi-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 8px; }
+.kpi-value { font-family: 'Space Mono', monospace; font-size: 1.7rem; font-weight: 700; color: var(--text); line-height: 1; margin-bottom: 6px; }
+.kpi-unit { font-size: 0.8rem; color: var(--text-muted); }
+.kpi-delta { font-size: 0.75rem; font-family: 'Space Mono', monospace; margin-top: 6px; display: flex; align-items: center; gap: 4px; }
+.kpi-delta.up { color: var(--red); }
+.kpi-delta.down { color: var(--green); }
+
+/* ════════════════════════════════
+   GRIDS & CARDS
+════════════════════════════════ */
+.main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
+@media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+.bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 768px) { .bottom-grid { grid-template-columns: 1fr; } }
+
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+.card-title { font-size: 0.9rem; font-weight: 700; color: var(--text); letter-spacing: 0.01em; }
+.card-subtitle { font-size: 0.72rem; color: var(--text-muted); font-family: 'Space Mono', monospace; margin-top: 2px; }
+.badge { font-size: 0.7rem; font-family: 'Space Mono', monospace; padding: 3px 10px; border-radius: 20px; background: rgba(0,212,255,0.1); color: var(--accent); border: 1px solid rgba(0,212,255,0.2); }
+canvas { max-height: 240px; }
+
+/* ════════════════════════════════
+   MONTH SELECTOR
+════════════════════════════════ */
+.month-selector { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.month-btn {
+  padding: 5px 11px; border-radius: 8px; border: 1px solid var(--border);
+  background: transparent; color: var(--text-muted);
+  font-family: 'Space Mono', monospace; font-size: 0.7rem; cursor: pointer; transition: all 0.15s;
+}
+.month-btn.active { background: rgba(0,212,255,0.12); border-color: var(--accent); color: var(--accent); }
+.month-btn:not(.active):hover { background: var(--surface2); color: var(--text); }
+
+/* ════════════════════════════════
+   DEVICE LIST
+════════════════════════════════ */
+.device-list { display: flex; flex-direction: column; gap: 10px; }
+.device-row { display: flex; align-items: center; gap: 12px; }
+.device-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+.device-info { flex: 1; min-width: 0; }
+.device-name { font-size: 0.82rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.device-bar-wrap { height: 4px; background: var(--border); border-radius: 4px; margin-top: 5px; overflow: hidden; }
+.device-bar { height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.6s ease; }
+.device-kwh { font-family: 'Space Mono', monospace; font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; }
+
+/* ════════════════════════════════
+   TARIFF INFO TILES
+════════════════════════════════ */
+.tariff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.tariff-item { background: var(--surface2); border-radius: 10px; padding: 12px; }
+.tariff-label { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.tariff-val { font-family: 'Space Mono', monospace; font-size: 1rem; font-weight: 700; color: var(--accent); margin-top: 4px; }
+
+/* ════════════════════════════════
+   ADD ENTRY FORM
+════════════════════════════════ */
+.add-entry { background: var(--surface2); border-radius: 12px; padding: 16px; margin-top: 16px; }
+.add-entry h3 { font-size: 0.85rem; font-weight: 700; margin-bottom: 12px; }
+.form-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+.form-group { flex: 1; min-width: 100px; }
+.form-group label { display: block; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+.form-group input, .form-group select {
+  width: 100%; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px; color: var(--text);
+  font-family: 'Space Mono', monospace; font-size: 0.8rem; outline: none; transition: border-color 0.2s;
+}
+.form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+.form-group select option { background: var(--surface); }
+.btn-add {
+  padding: 8px 18px; background: linear-gradient(135deg, var(--accent), #0088ff);
+  border: none; border-radius: 8px; color: #fff;
+  font-family: 'Syne', sans-serif; font-size: 0.82rem; font-weight: 700;
+  cursor: pointer; white-space: nowrap; transition: opacity 0.2s, transform 0.1s;
+  box-shadow: 0 0 12px rgba(0,212,255,0.25);
+}
+.btn-add:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-add:active { transform: translateY(0); }
+
+/* ════════════════════════════════
+   TARIFF SETTINGS MODAL
+════════════════════════════════ */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(4px); z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.25s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 18px; padding: 28px; width: 100%; max-width: 460px;
+  transform: translateY(20px); transition: transform 0.25s;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+}
+.modal-overlay.open .modal { transform: translateY(0); }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
+.modal-title { font-size: 1.1rem; font-weight: 800; }
+.modal-close {
+  width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border);
+  background: transparent; color: var(--text-muted); font-size: 1.1rem;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.modal-close:hover { background: var(--surface2); color: var(--text); }
+
+.tariff-options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.tariff-option {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border);
+  cursor: pointer; transition: all 0.18s; background: transparent;
+  text-align: left; width: 100%;
+}
+.tariff-option:hover { background: var(--surface2); border-color: rgba(0,212,255,0.3); }
+.tariff-option.selected { background: rgba(0,212,255,0.08); border-color: var(--accent); }
+.tariff-option-left { display: flex; flex-direction: column; gap: 3px; }
+.tariff-option-name { font-size: 0.88rem; font-weight: 700; color: var(--text); }
+.tariff-option-desc { font-size: 0.72rem; color: var(--text-muted); }
+.tariff-option-price {
+  font-family: 'Space Mono', monospace; font-size: 0.85rem;
+  font-weight: 700; color: var(--accent3);
+}
+.tariff-option .check {
+  width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border);
+  background: transparent; margin-left: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 10px;
+  transition: all 0.18s;
+}
+.tariff-option.selected .check { background: var(--accent); border-color: var(--accent); color: #000; }
+
+.custom-tariff-wrap { margin-bottom: 20px; }
+.custom-tariff-wrap label { display: block; font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.custom-input-row { display: flex; align-items: center; gap: 8px; }
+.custom-input-row span { font-size: 0.85rem; color: var(--text-muted); font-family: 'Space Mono', monospace; }
+.custom-input-row input {
+  flex: 1; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 9px 12px; color: var(--text);
+  font-family: 'Space Mono', monospace; font-size: 0.88rem; outline: none;
+  transition: border-color 0.2s;
+}
+.custom-input-row input:focus { border-color: var(--accent); }
+.custom-input-row input:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-save {
+  width: 100%; padding: 11px;
+  background: linear-gradient(135deg, var(--accent), #0088ff);
+  border: none; border-radius: 10px; color: #fff;
+  font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700;
+  cursor: pointer; transition: opacity 0.2s;
+  box-shadow: 0 0 18px rgba(0,212,255,0.3);
+}
+.btn-save:hover { opacity: 0.9; }
+
+/* ════════════════════════════════
+   VIEW SECTIONS
+════════════════════════════════ */
+.view { display: none; }
+.view.active { display: block; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ════════════════════════════════
+   PRINT / PDF STYLES
+════════════════════════════════ */
+@media print {
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+  body {
+    background: #ffffff !important;
+    color: #1a1a2e !important;
+    font-family: 'Syne', sans-serif;
+  }
+  body::before { display: none !important; }
+
+  .no-print, header .header-right, .nav-tabs, .month-selector,
+  .add-entry, .modal-overlay, .btn-icon, .tariff-badge { display: none !important; }
+
+  .app { padding: 0 !important; max-width: 100% !important; }
+
+  .print-header {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #1a1a2e;
+    margin-bottom: 20px;
+  }
+  .print-header h1 { font-size: 1.4rem; font-weight: 800; color: #1a1a2e; }
+  .print-header p { font-size: 0.78rem; color: #64748b; margin-top: 3px; }
+  .print-header .print-meta { text-align: right; font-size: 0.75rem; color: #64748b; font-family: 'Space Mono', monospace; }
+
+  .kpi-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 10px !important; margin-bottom: 16px !important; }
+  .kpi-card {
+    background: #f8fafc !important; border: 1px solid #e2e8f0 !important;
+    border-radius: 10px !important; padding: 14px !important;
+    break-inside: avoid;
+  }
+  .kpi-card::before { background: #0088ff !important; }
+  .kpi-label { color: #64748b !important; }
+  .kpi-value { color: #1a1a2e !important; font-size: 1.4rem !important; }
+  .kpi-unit { color: #64748b !important; }
+  .kpi-delta.up { color: #ef4444 !important; }
+  .kpi-delta.down { color: #16a34a !important; }
+
+  .main-grid { grid-template-columns: 2fr 1fr !important; gap: 12px !important; }
+  .bottom-grid { grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
+
+  .card {
+    background: #f8fafc !important; border: 1px solid #e2e8f0 !important;
+    border-radius: 10px !important; padding: 16px !important; break-inside: avoid;
+  }
+  .card-title { color: #1a1a2e !important; }
+  .card-subtitle { color: #64748b !important; }
+  .badge { background: #e0f2fe !important; color: #0284c7 !important; border-color: #bae6fd !important; }
+
+  .tariff-item { background: #f1f5f9 !important; border-radius: 8px !important; }
+  .tariff-label { color: #64748b !important; }
+  .tariff-val { color: #0088ff !important; }
+
+  canvas { max-height: 200px !important; }
+
+  .view { display: block !important; }
+  #view-monthly { page-break-after: always; }
+  #view-annually { page-break-after: always; }
+  #view-devices { page-break-after: avoid; }
+
+  /* Print section titles */
+  .view::before {
+    display: block;
+    font-size: 1rem; font-weight: 800; color: #1a1a2e;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 14px; padding-bottom: 8px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  #view-monthly::before { content: 'Laporan Bulanan'; }
+  #view-annually::before { content: 'Laporan Tahunan'; }
+  #view-devices::before { content: 'Rincian Perangkat'; }
+
+  .device-row { padding: 4px 0; }
+  .device-name { color: #1a1a2e !important; }
+  .device-bar-wrap { background: #e2e8f0 !important; }
+  .device-kwh { color: #64748b !important; }
+
+  #monthly-summary-table div { color: #1a1a2e !important; border-color: #e2e8f0 !important; }
+}
+
+/* ════════════════════════════════
+   SCROLLBAR
+════════════════════════════════ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- ════════════ TARIFF MODAL ════════════ -->
+<div class="modal-overlay" id="tariffModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">⚡ Pengaturan Tarif Listrik</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="tariff-options" id="tariffOptions">
+      <!-- Rendered by JS -->
+    </div>
+
+    <div class="custom-tariff-wrap">
+      <label>Tarif Custom (Rp / kWh)</label>
+      <div class="custom-input-row">
+        <span>Rp</span>
+        <input type="number" id="customTariffInput" placeholder="Masukkan tarif..." disabled min="100" max="5000" step="1">
+        <span>/ kWh</span>
+      </div>
+    </div>
+
+    <button class="btn-save" onclick="saveTariff()">Simpan & Terapkan</button>
+  </div>
+</div>
+
+<!-- ════════════ PRINT HEADER (only visible on print) ════════════ -->
+<div class="print-header" style="display:none">
+  <div>
+    <h1>⚡ WATT MONITOR</h1>
+    <p>Laporan Pemakaian Listrik Rumah · 2025</p>
+  </div>
+  <div class="print-meta" id="printMeta"></div>
+</div>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <div class="logo-text">
+        <h1>WATT MONITOR</h1>
+        <p>MONITOR LISTRIK RUMAH · 2025</p>
+      </div>
+    </div>
+    <div class="header-right no-print">
+      <button class="tariff-badge" onclick="openModal()" title="Ubah golongan tarif">
+        ⚙️ <span id="tariffBadgeLabel">R-900 · Rp1.352/kWh</span>
+      </button>
+      <button class="btn-icon primary" onclick="exportPDF()">
+        🖨️ Export PDF
+      </button>
+    </div>
+  </header>
+
+  <!-- NAV TABS -->
+  <div class="nav-tabs no-print">
+    <button class="nav-tab active" onclick="switchView('monthly')">📅 Bulanan</button>
+    <button class="nav-tab" onclick="switchView('annually')">📊 Tahunan</button>
+    <button class="nav-tab" onclick="switchView('devices')">🏠 Perangkat</button>
+  </div>
+
+  <!-- ══════════ MONTHLY VIEW ══════════ -->
+  <div class="view active" id="view-monthly">
+
+    <div class="kpi-grid">
+      <div class="kpi-card" style="--card-accent: var(--accent)">
+        <div class="kpi-label">Pemakaian Bulan Ini</div>
+        <div class="kpi-value" id="kpi-kwh">0</div>
+        <div class="kpi-unit">kWh</div>
+        <div class="kpi-delta up" id="kpi-kwh-delta">▲ 0% vs bulan lalu</div>
+      </div>
+      <div class="kpi-card" style="--card-accent: var(--accent2)">
+        <div class="kpi-label">Tagihan Estimasi</div>
+        <div class="kpi-value" id="kpi-cost">0</div>
+        <div class="kpi-unit">Ribuan Rupiah</div>
+        <div class="kpi-delta" id="kpi-cost-delta" style="color:var(--text-muted)">—</div>
+      </div>
+      <div class="kpi-card" style="--card-accent: var(--accent3)">
+        <div class="kpi-label">Rata-rata Harian</div>
+        <div class="kpi-value" id="kpi-avg">0</div>
+        <div class="kpi-unit">kWh / hari</div>
+        <div class="kpi-delta down">— stabil</div>
+      </div>
+      <div class="kpi-card" style="--card-accent: var(--green)">
+        <div class="kpi-label">Pemakaian Tertinggi</div>
+        <div class="kpi-value" id="kpi-peak">0</div>
+        <div class="kpi-unit">kWh (hari puncak)</div>
+        <div class="kpi-delta" id="kpi-peak-day" style="color:var(--text-muted)">—</div>
+      </div>
+    </div>
+
+    <div class="month-selector no-print" id="monthSelector"></div>
+
+    <div class="main-grid">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Pemakaian Harian</div>
+            <div class="card-subtitle" id="monthly-subtitle">kWh per hari</div>
+          </div>
+          <span class="badge" id="monthly-total-badge">0 kWh total</span>
+        </div>
+        <canvas id="dailyChart"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Distribusi Waktu</div>
+            <div class="card-subtitle">Siang vs Malam</div>
+          </div>
+        </div>
+        <canvas id="timeChart"></canvas>
+        <div style="margin-top:14px;">
+          <div class="tariff-grid">
+            <div class="tariff-item">
+              <div class="tariff-label">☀️ Pagi–Sore</div>
+              <div class="tariff-val" id="day-usage">0 kWh</div>
+            </div>
+            <div class="tariff-item">
+              <div class="tariff-label">🌙 Malam</div>
+              <div class="tariff-val" id="night-usage">0 kWh</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Entry -->
+    <div class="add-entry no-print">
+      <h3>➕ Tambah Data Pemakaian</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Bulan</label>
+          <select id="inp-month">
+            <option value="0">Januari</option><option value="1">Februari</option>
+            <option value="2">Maret</option><option value="3">April</option>
+            <option value="4">Mei</option><option value="5">Juni</option>
+            <option value="6">Juli</option><option value="7">Agustus</option>
+            <option value="8">September</option><option value="9">Oktober</option>
+            <option value="10">November</option><option value="11">Desember</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Tanggal</label>
+          <input type="number" id="inp-day" min="1" max="31" placeholder="1–31" value="1">
+        </div>
+        <div class="form-group">
+          <label>kWh Pagi</label>
+          <input type="number" id="inp-day-kwh" step="0.1" placeholder="0.0">
+        </div>
+        <div class="form-group">
+          <label>kWh Malam</label>
+          <input type="number" id="inp-night-kwh" step="0.1" placeholder="0.0">
+        </div>
+        <button class="btn-add" onclick="addEntry()">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ ANNUAL VIEW ══════════ -->
+  <div class="view" id="view-annually">
+
+    <div class="kpi-grid">
+      <div class="kpi-card" style="--card-accent: var(--accent)">
+        <div class="kpi-label">Total Pemakaian 2025</div>
+        <div class="kpi-value" id="a-kwh">0</div>
+        <div class="kpi-unit">kWh</div>
+        <div class="kpi-delta" style="color:var(--text-muted)">Januari–Sekarang</div>
+      </div>
+      <div class="kpi-card" style="--card-accent: var(--accent2)">
+        <div class="kpi-label">Total Tagihan 2025</div>
+        <div class="kpi-value" id="a-cost">0</div>
+        <div class="kpi-unit">Ribuan Rupiah</div>
+        <div class="kpi-delta down">— estimasi</div>
+      </div>
+      <div class="kpi-card" style="--card-accent: var(--green)">
+        <div class="kpi-label">Bulan Tertinggi</div>
+        <div class="kpi-value" id="a-peak-month">—</div>
+        <div class="kpi-unit" id="a-peak-kwh">0 kWh</div>
+        <div class="kpi-delta" style="color:var(--text-muted)">pemakaian terbanyak</div>
+      </div>
+      <div class="kpi-card" style="--card-accent: var(--accent3)">
+        <div class="kpi-label">Bulan Terendah</div>
+        <div class="kpi-value" id="a-low-month">—</div>
+        <div class="kpi-unit" id="a-low-kwh">0 kWh</div>
+        <div class="kpi-delta" style="color:var(--text-muted)">pemakaian tersedikit</div>
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Tren Pemakaian per Bulan</div>
+            <div class="card-subtitle">kWh bulanan — 2025</div>
+          </div>
+        </div>
+        <canvas id="annualChart"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Tagihan per Bulan</div>
+            <div class="card-subtitle" id="annual-cost-subtitle">Estimasi biaya (Rp)</div>
+          </div>
+        </div>
+        <canvas id="costChart"></canvas>
+      </div>
+    </div>
+
+    <div class="bottom-grid" style="margin-top:16px;">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Perbandingan Semester</div>
+        </div>
+        <canvas id="semesterChart"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Ringkasan Bulanan</div>
+        </div>
+        <div id="monthly-summary-table" style="font-family:'Space Mono',monospace; font-size:0.75rem;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ DEVICES VIEW ══════════ -->
+  <div class="view" id="view-devices">
+
+    <div class="kpi-grid">
+      <div class="kpi-card" style="--card-accent: var(--accent)">
+        <div class="kpi-label">Total Perangkat</div>
+        <div class="kpi-value">8</div>
+        <div class="kpi-unit">unit terpantau</div>
+      </div>
+      <div class="kpi-card" style="--card-accent: var(--accent2)">
+        <div class="kpi-label">Konsumen Terbesar</div>
+        <div class="kpi-value">AC</div>
+        <div class="kpi-unit">~42% total pemakaian</div>
+      </div>
+      <div class="kpi-card" style="--card-accent: var(--green)">
+        <div class="kpi-label">Perangkat Aktif</div>
+        <div class="kpi-value">5</div>
+        <div class="kpi-unit">sedang menyala</div>
+      </div>
+      <div class="kpi-card" style="--card-accent: var(--accent3)">
+        <div class="kpi-label">Biaya Perangkat/Bln</div>
+        <div class="kpi-value" id="dev-total-cost">—</div>
+        <div class="kpi-unit">estimasi total</div>
+      </div>
+    </div>
+
+    <div class="bottom-grid">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Konsumsi per Perangkat</div>
+          <div class="card-subtitle">Estimasi bulan ini</div>
+        </div>
+        <canvas id="deviceChart"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Detail Perangkat</div>
+        </div>
+        <div class="device-list" id="deviceList"></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+// ══════════════════════════════════════════════
+//  TARIFF CONFIG
+// ══════════════════════════════════════════════
+const TARIFF_PRESETS = [
+  { key: 'R-450',      label: 'R-450 VA',      desc: 'Rumah tangga daya 450 VA',      rate: 415 },
+  { key: 'R-900',      label: 'R-900 VA',       desc: 'Rumah tangga daya 900 VA',      rate: 1352 },
+  { key: 'R-1300',     label: 'R-1300 VA',      desc: 'Rumah tangga daya 1300 VA',     rate: 1444.70 },
+  { key: 'R-2200',     label: 'R-2200 VA',      desc: 'Rumah tangga daya 2200 VA',     rate: 1444.70 },
+  { key: 'R-3500',     label: 'R-3500–5500 VA', desc: 'Rumah tangga daya 3500–5500 VA',rate: 1699.53 },
+  { key: 'R-6600',     label: 'R-6600 VA ke atas', desc: 'Rumah tangga daya 6600 VA+', rate: 1699.53 },
+  { key: 'custom',     label: 'Custom',          desc: 'Masukkan tarif sendiri',         rate: null },
+];
+
+let selectedTariffKey = 'R-900';
+let customRate = 1352;
+
+function getCurrentRate() {
+  if (selectedTariffKey === 'custom') return customRate;
+  return TARIFF_PRESETS.find(t => t.key === selectedTariffKey).rate;
+}
+
+// ══════════════════════════════════════════════
+//  STATIC DATA
+// ══════════════════════════════════════════════
+const MONTHS      = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+const MONTH_FULL  = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+const monthlyData = [
+  { total: 285, day: 165, night: 120 },
+  { total: 262, day: 152, night: 110 },
+  { total: 298, day: 175, night: 123 },
+  { total: 310, day: 181, night: 129 },
+  { total: 327, day: 190, night: 137 },
+  { total: 0, day: 0, night: 0 },
+  { total: 0, day: 0, night: 0 },
+  { total: 0, day: 0, night: 0 },
+  { total: 0, day: 0, night: 0 },
+  { total: 0, day: 0, night: 0 },
+  { total: 0, day: 0, night: 0 },
+  { total: 0, day: 0, night: 0 },
+];
+
+function generateDailyData(month, total) {
+  const days = [31,28,31,30,31,30,31,31,30,31,30,31][month];
+  if (!total) return Array(days).fill(0);
+  const data = [];
+  let sum = 0;
+  for (let i = 0; i < days - 1; i++) {
+    const v = Math.max(0.5, +((total / days) * (0.6 + Math.random() * 0.9)).toFixed(1));
+    data.push(v); sum += v;
+  }
+  data.push(Math.max(0.5, +(total - sum).toFixed(1)));
+  return data;
+}
+const dailyData = MONTHS.map((_, i) => generateDailyData(i, monthlyData[i].total));
+
+const DEVICES = [
+  { name: 'AC (2 unit)',      icon: '❄️', kwh: 137, color: '#00d4ff' },
+  { name: 'Kulkas',           icon: '🧊', kwh: 42,  color: '#a78bfa' },
+  { name: 'TV & Set-top Box', icon: '📺', kwh: 28,  color: '#ff6b35' },
+  { name: 'Mesin Cuci',       icon: '🌀', kwh: 24,  color: '#22d3a0' },
+  { name: 'Pompa Air',        icon: '💧', kwh: 19,  color: '#60a5fa' },
+  { name: 'Lampu',            icon: '💡', kwh: 31,  color: '#fbbf24' },
+  { name: 'Komputer/Laptop',  icon: '💻', kwh: 22,  color: '#f472b6' },
+  { name: 'Lainnya',          icon: '🔌', kwh: 24,  color: '#6b7280' },
+];
+
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+let activeMonth = 4;
+let charts = {};
+
+// ══════════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════════
+function fmtRp(v)  { return 'Rp ' + Math.round(v).toLocaleString('id-ID'); }
+function fmtK(v)   { return Math.round(v / 1000).toLocaleString('id-ID') + 'K'; }
+function calcCost(kwh) { return kwh * getCurrentRate(); }
+
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+const CHART_DEFAULTS = {
+  plugins: {
+    legend: { labels: { color: '#94a3b8', font: { family: 'Space Mono', size: 11 } } },
+    tooltip: {
+      backgroundColor: '#1a2235', borderColor: '#1e2d45', borderWidth: 1,
+      titleColor: '#e2e8f0', bodyColor: '#94a3b8', padding: 10,
+    }
+  },
+  scales: {
+    x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748b', font: { family: 'Space Mono', size: 10 } } },
+    y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748b', font: { family: 'Space Mono', size: 10 } } }
+  }
+};
+
+// ══════════════════════════════════════════════
+//  MODAL
+// ══════════════════════════════════════════════
+function openModal() {
+  renderTariffOptions();
+  document.getElementById('tariffModal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('tariffModal').classList.remove('open');
+}
+document.getElementById('tariffModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+function renderTariffOptions() {
+  const wrap = document.getElementById('tariffOptions');
+  const customInput = document.getElementById('customTariffInput');
+
+  wrap.innerHTML = TARIFF_PRESETS.map(t => `
+    <button class="tariff-option ${t.key === selectedTariffKey ? 'selected' : ''}"
+            onclick="selectTariff('${t.key}')">
+      <div class="tariff-option-left">
+        <div class="tariff-option-name">${t.label}</div>
+        <div class="tariff-option-desc">${t.desc}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="tariff-option-price">${t.rate ? 'Rp ' + t.rate.toLocaleString('id-ID') + '/kWh' : 'Masukkan manual'}</div>
+        <div class="check">${t.key === selectedTariffKey ? '✓' : ''}</div>
+      </div>
+    </button>
+  `).join('');
+
+  customInput.disabled = selectedTariffKey !== 'custom';
+  customInput.value = selectedTariffKey === 'custom' ? customRate : '';
+}
+
+function selectTariff(key) {
+  selectedTariffKey = key;
+  const customInput = document.getElementById('customTariffInput');
+  customInput.disabled = key !== 'custom';
+  if (key !== 'custom') customInput.value = '';
+  renderTariffOptions();
+}
+
+function saveTariff() {
+  if (selectedTariffKey === 'custom') {
+    const v = +document.getElementById('customTariffInput').value;
+    if (!v || v < 100) { alert('Masukkan tarif custom yang valid (min Rp 100/kWh)'); return; }
+    customRate = v;
+  }
+  // Update badge
+  const rate = getCurrentRate();
+  const label = selectedTariffKey === 'custom'
+    ? `Custom · Rp${rate.toLocaleString('id-ID')}/kWh`
+    : `${selectedTariffKey} · Rp${rate.toLocaleString('id-ID')}/kWh`;
+  document.getElementById('tariffBadgeLabel').textContent = label;
+
+  closeModal();
+  // Refresh active view
+  const activeView = document.querySelector('.view.active').id.replace('view-', '');
+  switchView(activeView);
+}
+
+// ══════════════════════════════════════════════
+//  PDF EXPORT
+// ══════════════════════════════════════════════
+function exportPDF() {
+  // Fill print header meta
+  const rate = getCurrentRate();
+  const now = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+  document.getElementById('printMeta').innerHTML =
+    `Dicetak: ${now}<br>Tarif: ${selectedTariffKey} · Rp ${rate.toLocaleString('id-ID')}/kWh<br>Tahun: 2025`;
+
+  // Make sure all views are rendered before print
+  renderMonthlyView();
+  renderAnnualView();
+  renderDevicesView();
+
+  // Short delay for charts to render, then print
+  setTimeout(() => window.print(), 400);
+}
+
+// ══════════════════════════════════════════════
+//  MONTHLY VIEW
+// ══════════════════════════════════════════════
+function renderMonthSelector() {
+  const wrap = document.getElementById('monthSelector');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  MONTH_FULL.forEach((m, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'month-btn' + (i === activeMonth ? ' active' : '');
+    btn.textContent = MONTHS[i];
+    if (!monthlyData[i].total) btn.style.opacity = '0.4';
+    btn.onclick = () => { activeMonth = i; renderMonthlyView(); };
+    wrap.appendChild(btn);
+  });
+}
+
+function renderMonthlyView() {
+  renderMonthSelector();
+  const d = monthlyData[activeMonth];
+  const prev = activeMonth > 0 ? monthlyData[activeMonth - 1] : null;
+  const daily = dailyData[activeMonth];
+  const days = [31,28,31,30,31,30,31,31,30,31,30,31][activeMonth];
+
+  document.getElementById('kpi-kwh').textContent = d.total;
+  document.getElementById('kpi-cost').textContent = fmtK(calcCost(d.total));
+  document.getElementById('kpi-cost-delta').textContent = `${selectedTariffKey} · Rp${getCurrentRate().toLocaleString('id-ID')}/kWh`;
+  document.getElementById('kpi-avg').textContent = d.total ? (d.total / days).toFixed(1) : '0';
+  const peak = d.total ? Math.max(...daily).toFixed(1) : '0';
+  const peakDay = d.total ? daily.indexOf(Math.max(...daily)) + 1 : '—';
+  document.getElementById('kpi-peak').textContent = peak;
+  document.getElementById('kpi-peak-day').textContent = d.total ? `Tgl ${peakDay} ${MONTHS[activeMonth]}` : '—';
+  if (prev?.total && d.total) {
+    const pct = (((d.total - prev.total) / prev.total) * 100).toFixed(1);
+    const el = document.getElementById('kpi-kwh-delta');
+    el.textContent = (pct > 0 ? '▲ ' : '▼ ') + Math.abs(pct) + '% vs bulan lalu';
+    el.className = 'kpi-delta ' + (pct > 0 ? 'up' : 'down');
+  }
+  document.getElementById('monthly-subtitle').textContent = `kWh per hari — ${MONTH_FULL[activeMonth]} 2025`;
+  document.getElementById('monthly-total-badge').textContent = d.total + ' kWh total';
+  document.getElementById('day-usage').textContent = d.day + ' kWh';
+  document.getElementById('night-usage').textContent = d.night + ' kWh';
+
+  destroyChart('daily');
+  const avg = d.total / daily.length;
+  charts['daily'] = new Chart(document.getElementById('dailyChart'), {
+    type: 'bar',
+    data: {
+      labels: Array.from({ length: daily.length }, (_, i) => i + 1),
+      datasets: [{
+        label: 'kWh', data: daily,
+        backgroundColor: daily.map(v => v > avg * 1.3 ? 'rgba(255,107,53,0.7)' : 'rgba(0,212,255,0.55)'),
+        borderColor: daily.map(v => v > avg * 1.3 ? '#ff6b35' : '#00d4ff'),
+        borderWidth: 1, borderRadius: 4,
+      }]
+    },
+    options: { responsive: true, plugins: { ...CHART_DEFAULTS.plugins, legend: { display: false } }, scales: CHART_DEFAULTS.scales }
+  });
+
+  destroyChart('time');
+  charts['time'] = new Chart(document.getElementById('timeChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Pagi–Sore', 'Malam'],
+      datasets: [{ data: [d.day || 1, d.night || 1], backgroundColor: ['rgba(0,212,255,0.7)','rgba(167,139,250,0.7)'], borderColor: ['#00d4ff','#a78bfa'], borderWidth: 2 }]
+    },
+    options: { responsive: true, cutout: '65%', plugins: CHART_DEFAULTS.plugins }
+  });
+}
+
+// ══════════════════════════════════════════════
+//  ANNUAL VIEW
+// ══════════════════════════════════════════════
+function renderAnnualView() {
+  const totals = monthlyData.map(d => d.total);
+  const costs = totals.map(v => calcCost(v));
+  const filled = totals.filter(v => v > 0);
+  if (!filled.length) return;
+  const total = filled.reduce((a, b) => a + b, 0);
+  const totalCost = calcCost(total);
+  const peakIdx = totals.indexOf(Math.max(...filled));
+  const lowVal = Math.min(...filled);
+  const lowIdx = totals.indexOf(lowVal);
+
+  document.getElementById('a-kwh').textContent = total;
+  document.getElementById('a-cost').textContent = fmtK(totalCost);
+  document.getElementById('a-peak-month').textContent = MONTHS[peakIdx];
+  document.getElementById('a-peak-kwh').textContent = Math.max(...filled) + ' kWh';
+  document.getElementById('a-low-month').textContent = MONTHS[lowIdx];
+  document.getElementById('a-low-kwh').textContent = lowVal + ' kWh';
+  document.getElementById('annual-cost-subtitle').textContent = `Estimasi biaya (Rp) — ${selectedTariffKey}`;
+
+  destroyChart('annual');
+  charts['annual'] = new Chart(document.getElementById('annualChart'), {
+    type: 'bar',
+    data: {
+      labels: MONTHS,
+      datasets: [{ label: 'kWh', data: totals,
+        backgroundColor: totals.map(v => v === 0 ? 'rgba(255,255,255,0.05)' : (v === Math.max(...filled) ? 'rgba(255,107,53,0.7)' : 'rgba(0,212,255,0.55)')),
+        borderColor: totals.map(v => v === 0 ? '#1e2d45' : '#00d4ff'),
+        borderWidth: 1, borderRadius: 5 }]
+    },
+    options: { responsive: true, plugins: { ...CHART_DEFAULTS.plugins, legend: { display: false } }, scales: CHART_DEFAULTS.scales }
+  });
+
+  destroyChart('cost');
+  charts['cost'] = new Chart(document.getElementById('costChart'), {
+    type: 'line',
+    data: {
+      labels: MONTHS,
+      datasets: [{ label: 'Biaya (Rp)', data: costs, borderColor: '#ff6b35', backgroundColor: 'rgba(255,107,53,0.1)', fill: true, tension: 0.4, pointBackgroundColor: '#ff6b35', pointRadius: 4 }]
+    },
+    options: {
+      responsive: true,
+      plugins: { ...CHART_DEFAULTS.plugins, tooltip: { ...CHART_DEFAULTS.plugins.tooltip, callbacks: { label: ctx => 'Rp ' + Math.round(ctx.raw).toLocaleString('id-ID') } } },
+      scales: CHART_DEFAULTS.scales
+    }
+  });
+
+  const sem1 = totals.slice(0, 6).reduce((a, b) => a + b, 0);
+  const sem2 = totals.slice(6, 12).reduce((a, b) => a + b, 0);
+  destroyChart('semester');
+  charts['semester'] = new Chart(document.getElementById('semesterChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Semester 1 (Jan–Jun)', 'Semester 2 (Jul–Des)'],
+      datasets: [{ label: 'kWh', data: [sem1, sem2], backgroundColor: ['rgba(0,212,255,0.6)','rgba(167,139,250,0.6)'], borderColor: ['#00d4ff','#a78bfa'], borderWidth: 2, borderRadius: 8 }]
+    },
+    options: { responsive: true, plugins: { ...CHART_DEFAULTS.plugins, legend: { display: false } }, scales: CHART_DEFAULTS.scales }
+  });
+
+  // Summary table
+  const tbl = document.getElementById('monthly-summary-table');
+  const rows = totals.map((v, i) => {
+    const c = calcCost(v);
+    const style = v === 0 ? 'color:#1e2d45' : (v === Math.max(...filled) ? 'color:#ff6b35' : 'color:#e2e8f0');
+    return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1e2d45;${style}">
+      <span>${MONTH_FULL[i]}</span><span>${v > 0 ? v + ' kWh' : '—'}</span><span>${v > 0 ? fmtK(c) : '—'}</span>
+    </div>`;
+  }).join('');
+  tbl.innerHTML = `<div style="display:flex;justify-content:space-between;padding:4px 0 8px;border-bottom:1px solid #1e2d45;color:#64748b;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em"><span>Bulan</span><span>kWh</span><span>Estimasi</span></div>` + rows;
+}
+
+// ══════════════════════════════════════════════
+//  DEVICES VIEW
+// ══════════════════════════════════════════════
+function renderDevicesView() {
+  const total = DEVICES.reduce((a, d) => a + d.kwh, 0);
+  document.getElementById('dev-total-cost').textContent = fmtK(calcCost(total));
+
+  destroyChart('device');
+  charts['device'] = new Chart(document.getElementById('deviceChart'), {
+    type: 'doughnut',
+    data: {
+      labels: DEVICES.map(d => d.name),
+      datasets: [{ data: DEVICES.map(d => d.kwh), backgroundColor: DEVICES.map(d => d.color + 'aa'), borderColor: DEVICES.map(d => d.color), borderWidth: 2 }]
+    },
+    options: {
+      responsive: true, cutout: '55%',
+      plugins: { ...CHART_DEFAULTS.plugins, tooltip: { ...CHART_DEFAULTS.plugins.tooltip, callbacks: { label: ctx => ` ${ctx.raw} kWh (${((ctx.raw/total)*100).toFixed(1)}%)` } } }
+    }
+  });
+
+  document.getElementById('deviceList').innerHTML = DEVICES.map(d => `
+    <div class="device-row">
+      <div class="device-icon">${d.icon}</div>
+      <div class="device-info">
+        <div class="device-name">${d.name}</div>
+        <div class="device-bar-wrap"><div class="device-bar" style="width:${(d.kwh/total*100).toFixed(0)}%;background:${d.color}"></div></div>
+      </div>
+      <div class="device-kwh">${d.kwh} kWh<br><span style="font-size:0.65rem;color:#64748b">${((d.kwh/total)*100).toFixed(1)}%</span></div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════
+function switchView(view) {
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-' + view).classList.add('active');
+  ['monthly','annually','devices'].forEach((v, i) => {
+    if (v === view) document.querySelectorAll('.nav-tab')[i].classList.add('active');
+  });
+  if (view === 'monthly') renderMonthlyView();
+  if (view === 'annually') renderAnnualView();
+  if (view === 'devices') renderDevicesView();
+}
+
+// ══════════════════════════════════════════════
+//  ADD ENTRY
+// ══════════════════════════════════════════════
+function addEntry() {
+  const m = +document.getElementById('inp-month').value;
+  const day = +document.getElementById('inp-day').value;
+  const dayK = +document.getElementById('inp-day-kwh').value || 0;
+  const nightK = +document.getElementById('inp-night-kwh').value || 0;
+  if (!dayK && !nightK || day < 1 || day > 31) { alert('Masukkan data yang valid!'); return; }
+  const maxDays = [31,28,31,30,31,30,31,31,30,31,30,31][m];
+  if (day > maxDays) { alert(`Bulan ${MONTH_FULL[m]} hanya ${maxDays} hari!`); return; }
+  dailyData[m][day - 1] = dayK + nightK;
+  monthlyData[m].total = +dailyData[m].reduce((a, b) => a + b, 0).toFixed(1);
+  monthlyData[m].day += dayK;
+  monthlyData[m].night += nightK;
+  activeMonth = m;
+  renderMonthlyView();
+  document.getElementById('inp-day-kwh').value = '';
+  document.getElementById('inp-night-kwh').value = '';
+}
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+renderMonthlyView();
+</script>
+</body>
+</html>
