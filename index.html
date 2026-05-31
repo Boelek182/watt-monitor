@@ -508,13 +508,13 @@ canvas { max-height: 240px; }
       </div>
     </div>
 
-    <!-- Add Entry -->
+    <!-- Add/Edit Entry -->
     <div class="add-entry no-print">
-      <h3>➕ Tambah Data Pemakaian</h3>
+      <h3 id="form-mode-label">➕ Tambah Data Pemakaian</h3>
       <div class="form-row">
         <div class="form-group">
           <label>Bulan</label>
-          <select id="inp-month">
+          <select id="inp-month" onchange="loadDayToForm()">
             <option value="0">Januari</option><option value="1">Februari</option>
             <option value="2">Maret</option><option value="3">April</option>
             <option value="4">Mei</option><option value="5">Juni</option>
@@ -525,7 +525,7 @@ canvas { max-height: 240px; }
         </div>
         <div class="form-group">
           <label>Tanggal</label>
-          <input type="number" id="inp-day" min="1" max="31" placeholder="1–31" value="1">
+          <input type="number" id="inp-day" min="1" max="31" placeholder="1–31" value="1" onchange="loadDayToForm()">
         </div>
         <div class="form-group">
           <label>kWh Pagi</label>
@@ -536,6 +536,7 @@ canvas { max-height: 240px; }
           <input type="number" id="inp-night-kwh" step="0.1" placeholder="0.0">
         </div>
         <button class="btn-add" onclick="addEntry()">Simpan</button>
+        <button class="btn-add" style="background:linear-gradient(135deg,#f87171,#ef4444);box-shadow:0 0 12px rgba(248,113,113,0.25)" onclick="deleteEntry()">Hapus</button>
       </div>
     </div>
   </div>
@@ -708,6 +709,14 @@ function generateDailyData(month, total) {
   return data;
 }
 const dailyData = MONTHS.map((_, i) => generateDailyData(i, monthlyData[i].total));
+const dailySplit = MONTHS.map((_, m) => {
+  const total = monthlyData[m].total;
+  const dayFrac = total ? monthlyData[m].day / total : 0.6;
+  return dailyData[m].map(v => ({
+    day: +(v * dayFrac).toFixed(1),
+    night: +(v * (1 - dayFrac)).toFixed(1)
+  }));
+});
 
 const DEVICES = [
   { name: 'AC (2 unit)',      icon: '❄️', kwh: 137, color: '#00d4ff' },
@@ -1023,25 +1032,65 @@ function switchView(view) {
 }
 
 // ══════════════════════════════════════════════
-//  ADD ENTRY
+//  ADD / EDIT / DELETE ENTRY
 // ══════════════════════════════════════════════
-function addEntry() {
-  const m = +document.getElementById('inp-month').value;
+function recalcMonthly(m) {
+  monthlyData[m].total = +dailyData[m].reduce((a, b) => a + b, 0).toFixed(1);
+  monthlyData[m].day   = +dailySplit[m].reduce((a, s) => a + s.day,   0).toFixed(1);
+  monthlyData[m].night = +dailySplit[m].reduce((a, s) => a + s.night, 0).toFixed(1);
+}
+
+function loadDayToForm() {
+  const m   = +document.getElementById('inp-month').value;
   const day = +document.getElementById('inp-day').value;
-  const dayK = +document.getElementById('inp-day-kwh').value || 0;
-  const nightK = +document.getElementById('inp-night-kwh').value || 0;
+  const label = document.getElementById('form-mode-label');
+  if (!day || day < 1 || day > 31) return;
+  const split = dailySplit[m]?.[day - 1];
+  if (split && (split.day > 0 || split.night > 0)) {
+    document.getElementById('inp-day-kwh').value   = split.day   || '';
+    document.getElementById('inp-night-kwh').value = split.night || '';
+    label.textContent = '✏️ Edit Data Pemakaian';
+  } else {
+    document.getElementById('inp-day-kwh').value   = '';
+    document.getElementById('inp-night-kwh').value = '';
+    label.textContent = '➕ Tambah Data Pemakaian';
+  }
+}
+
+function addEntry() {
+  const m     = +document.getElementById('inp-month').value;
+  const day   = +document.getElementById('inp-day').value;
+  const dayK  = +document.getElementById('inp-day-kwh').value   || 0;
+  const nightK= +document.getElementById('inp-night-kwh').value || 0;
   if (!dayK && !nightK || day < 1 || day > 31) { alert('Masukkan data yang valid!'); return; }
   const maxDays = [31,28,31,30,31,30,31,31,30,31,30,31][m];
   if (day > maxDays) { alert(`Bulan ${MONTH_FULL[m]} hanya ${maxDays} hari!`); return; }
-  dailyData[m][day - 1] = dayK + nightK;
-  monthlyData[m].total = +dailyData[m].reduce((a, b) => a + b, 0).toFixed(1);
-  monthlyData[m].day += dayK;
-  monthlyData[m].night += nightK;
+  const idx = day - 1;
+  dailySplit[m][idx] = { day: dayK, night: nightK };
+  dailyData[m][idx]  = dayK + nightK;
+  recalcMonthly(m);
   activeMonth = m;
   saveToStorage();
   renderMonthlyView();
-  document.getElementById('inp-day-kwh').value = '';
+  document.getElementById('inp-day-kwh').value   = '';
   document.getElementById('inp-night-kwh').value = '';
+  document.getElementById('form-mode-label').textContent = '➕ Tambah Data Pemakaian';
+}
+
+function deleteEntry() {
+  const m   = +document.getElementById('inp-month').value;
+  const day = +document.getElementById('inp-day').value;
+  if (!day || day < 1 || day > 31) return;
+  const idx = day - 1;
+  dailySplit[m][idx] = { day: 0, night: 0 };
+  dailyData[m][idx]  = 0;
+  recalcMonthly(m);
+  activeMonth = m;
+  saveToStorage();
+  renderMonthlyView();
+  document.getElementById('inp-day-kwh').value   = '';
+  document.getElementById('inp-night-kwh').value = '';
+  document.getElementById('form-mode-label').textContent = '➕ Tambah Data Pemakaian';
 }
 
 // ══════════════════════════════════════════════
@@ -1050,7 +1099,7 @@ function addEntry() {
 const LS_KEY = 'wattMonitor_v1';
 
 function saveToStorage() {
-  localStorage.setItem(LS_KEY, JSON.stringify({ monthlyData, dailyData, selectedTariffKey, customRate }));
+  localStorage.setItem(LS_KEY, JSON.stringify({ monthlyData, dailyData, dailySplit, selectedTariffKey, customRate }));
 }
 
 function loadFromStorage() {
@@ -1059,7 +1108,8 @@ function loadFromStorage() {
     if (!raw) return;
     const saved = JSON.parse(raw);
     if (saved.monthlyData) saved.monthlyData.forEach((d, i) => { monthlyData[i] = d; });
-    if (saved.dailyData) saved.dailyData.forEach((d, i) => { dailyData[i] = d; });
+    if (saved.dailyData)   saved.dailyData.forEach((d, i)   => { dailyData[i]   = d; });
+    if (saved.dailySplit)  saved.dailySplit.forEach((d, i)  => { dailySplit[i]  = d; });
     if (saved.selectedTariffKey) selectedTariffKey = saved.selectedTariffKey;
     if (typeof saved.customRate === 'number') customRate = saved.customRate;
   } catch(e) {}
