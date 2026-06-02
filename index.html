@@ -548,13 +548,16 @@ canvas { max-height: 240px; }
       </div>
     </div>
 
-    <div style="display:flex;gap:6px;margin-bottom:16px;align-items:center">
+    <div style="display:flex;gap:6px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
       <span style="font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-right:4px">Tahun</span>
       <div class="year-selector" id="yearSelectorAnnual"></div>
+      <span style="font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-left:12px">Pajak</span>
+      <input type="number" id="taxRateInput" min="0" max="100" step="0.5" style="width:60px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-family:'Space Mono',monospace;font-size:0.75rem;text-align:center">
+      <span style="font-size:0.68rem;color:var(--text-muted)">%</span>
     </div>
 
     <div class="main-grid">
-      <div class="card">
+      <div class="card" style="grid-column:1/-1">
         <div class="card-header">
           <div>
             <div class="card-title">Tren Pemakaian per Bulan</div>
@@ -565,15 +568,6 @@ canvas { max-height: 240px; }
       </div>
       <div class="card">
         <div class="card-header">
-          <div class="card-title">Perbandingan Semester</div>
-        </div>
-        <canvas id="semesterChart"></canvas>
-      </div>
-    </div>
-
-    <div class="bottom-grid" style="margin-top:16px;">
-      <div class="card">
-        <div class="card-header">
           <div>
             <div class="card-title">Tagihan per Bulan</div>
             <div class="card-subtitle" id="annual-cost-subtitle">Estimasi biaya (Rp)</div>
@@ -582,6 +576,12 @@ canvas { max-height: 240px; }
         <canvas id="costChart"></canvas>
       </div>
       <div class="card">
+        <div class="card-header">
+          <div class="card-title">Perbandingan Semester</div>
+        </div>
+        <canvas id="semesterChart"></canvas>
+      </div>
+      <div class="card" style="grid-column:1/-1;margin-top:0">
         <div class="card-header">
           <div class="card-title">Ringkasan Bulanan</div>
         </div>
@@ -675,6 +675,17 @@ const TARIFF_PRESETS = [
 
 let selectedTariffKey = 'R-900';
 let customRate = 1352;
+let taxRates = {};
+
+function getTaxRate(year) {
+  return taxRates[year] ?? 4;
+}
+
+function setTaxRate(year, rate) {
+  taxRates[year] = rate;
+  document.getElementById('taxRateInput').value = rate;
+  renderAnnualView();
+}
 
 function getCurrentRate() {
   if (selectedTariffKey === 'custom') return customRate;
@@ -758,6 +769,12 @@ function closeModal() {
 }
 document.getElementById('tariffModal').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeModal();
+});
+
+document.addEventListener('change', e => {
+  if (e.target.id === 'taxRateInput') {
+    setTaxRate(activeYear, parseFloat(e.target.value) || 0);
+  }
 });
 
 function renderTariffOptions() {
@@ -913,6 +930,7 @@ function renderMonthlyView() {
 //  ANNUAL VIEW
 // ══════════════════════════════════════════════
 function renderAnnualView() {
+  document.getElementById('taxRateInput').value = getTaxRate(activeYear);
   renderYearSelector();
   document.getElementById('a-year-range').textContent =
     `Januari–Desember ${activeYear}`;
@@ -965,8 +983,10 @@ function renderAnnualView() {
       ]}, options: chartOpts()
     });
     const emptyCells = MONTH_FULL.map(m =>
-      `<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 1fr;border-bottom:1px solid var(--border)">
+      `<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 1fr 1fr 1fr;border-bottom:1px solid var(--border)">
         <div style="padding:5px 6px;font-size:0.7rem;color:#1e2d45;text-align:center">${m}</div>
+        <div style="padding:5px 6px;font-size:0.7rem;color:#1e2d45;text-align:center">—</div>
+        <div style="padding:5px 6px;font-size:0.7rem;color:#1e2d45;text-align:center">—</div>
         <div style="padding:5px 6px;font-size:0.7rem;color:#1e2d45;text-align:center">—</div>
         <div style="padding:5px 6px;font-size:0.7rem;color:#1e2d45;text-align:center">—</div>
         <div style="padding:5px 6px;font-size:0.7rem;color:#1e2d45;text-align:center">—</div>
@@ -974,12 +994,14 @@ function renderAnnualView() {
       </div>`
     ).join('');
     document.getElementById('monthly-summary-table').innerHTML =
-      `<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 1fr;border-bottom:2px solid var(--border);margin-bottom:2px">
+      `<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 1fr 1fr 1fr;border-bottom:2px solid var(--border);margin-bottom:2px">
         <div style="padding:5px 6px;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);text-align:center">Bulan</div>
         <div style="padding:5px 6px;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);text-align:center">Pemakaian<br><span style="font-size:0.55rem">Kalender</span></div>
         <div style="padding:5px 6px;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);text-align:center">Pemakaian<br><span style="font-size:0.55rem">Real PLN</span></div>
         <div style="padding:5px 6px;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);text-align:center">Tagihan<br><span style="font-size:0.55rem">Estimasi</span></div>
+        <div style="padding:5px 6px;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);text-align:center">Tagihan+Pajak<br><span style="font-size:0.55rem">Estimasi</span></div>
         <div style="padding:5px 6px;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);text-align:center">Tagihan<br><span style="font-size:0.55rem">Real PLN</span></div>
+        <div style="padding:5px 6px;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);text-align:center">Tagihan+Pajak<br><span style="font-size:0.55rem">Real PLN</span></div>
       </div>` + emptyCells;
     return;
   }
@@ -1041,33 +1063,42 @@ function renderAnnualView() {
   // Summary table
   const tbl = document.getElementById('monthly-summary-table');
   const hasAny = filled.length > 0;
+  const taxPct = getTaxRate(activeYear);
   const th = (label, sub) => `<div style="padding:4px 6px;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);text-align:center">${label}${sub ? `<br><span style="font-size:0.5rem;opacity:0.7">${sub}</span>` : ''}</div>`;
   const td = (val, color) => `<div style="padding:4px 6px;font-size:0.68rem;text-align:center;${color || 'color:var(--text)'}">${val}</div>`;
   const rows = totals.map((v, i) => {
     const rv = realTotals[i];
     const c = calcCost(v);
     const rc = calcCost(rv);
+    const tax = c * taxPct / 100;
+    const rTax = rc * taxPct / 100;
     const isPeak = hasAny && v === Math.max(...filled);
     const color = v === 0 ? 'color:#1e2d45' : (isPeak ? 'color:#ff6b35;font-weight:700' : 'color:var(--text)');
-    return `<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 1fr;border-bottom:1px solid var(--border)">
+    return `<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 1fr 1fr 1fr;border-bottom:1px solid var(--border)">
       ${td(MONTH_FULL[i], color)}
       ${td(v > 0 ? v : '—', color)}
       ${td(rv > 0 ? rv : '—', v > 0 ? 'color:var(--green)' : 'color:#1e2d45')}
       ${td(v > 0 ? 'Rp' + Math.round(c).toLocaleString('id-ID') : '—', color)}
+      ${td(v > 0 ? 'Rp' + Math.round(c + tax).toLocaleString('id-ID') : '—', color)}
       ${td(rv > 0 ? 'Rp' + Math.round(rc).toLocaleString('id-ID') : '—', v > 0 ? 'color:var(--green)' : 'color:#1e2d45')}
+      ${td(rv > 0 ? 'Rp' + Math.round(rc + rTax).toLocaleString('id-ID') : '—', v > 0 ? 'color:var(--green)' : 'color:#1e2d45')}
     </div>`;
   }).join('');
+  const totalTax = totalCost * taxPct / 100;
+  const realTotalTax = realTotalCost * taxPct / 100;
   tbl.innerHTML =
-    `<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 1fr;border-bottom:2px solid var(--border);margin-bottom:2px">
-      ${th('Bulan')}${th('Pemakaian','Kalender')}${th('Pemakaian','Real PLN')}${th('Tagihan','Estimasi')}${th('Tagihan','Real PLN')}
+    `<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 1fr 1fr 1fr;border-bottom:2px solid var(--border);margin-bottom:2px">
+      ${th('Bulan')}${th('Pemakaian','Kalender')}${th('Pemakaian','Real PLN')}${th('Tagihan','Estimasi')}${th('Tagihan+Pajak','Estimasi')}${th('Tagihan','Real PLN')}${th('Tagihan+Pajak','Real PLN')}
     </div>` +
     rows +
-    `<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 1fr;border-top:2px solid var(--accent);margin-top:2px;background:rgba(0,212,255,0.05)">
+    `<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 1fr 1fr 1fr;border-top:2px solid var(--accent);margin-top:2px;background:rgba(0,212,255,0.05)">
       ${td('TOTAL', 'color:var(--accent);font-weight:700;font-size:0.74rem')}
       ${td(total + ' kWh', 'color:var(--accent);font-weight:700;font-size:0.74rem')}
       ${td(realTotal + ' kWh', 'color:var(--green);font-weight:700;font-size:0.74rem')}
       ${td('Rp' + Math.round(totalCost).toLocaleString('id-ID'), 'color:var(--accent);font-weight:700;font-size:0.74rem')}
+      ${td('Rp' + Math.round(totalCost + totalTax).toLocaleString('id-ID'), 'color:var(--accent);font-weight:700;font-size:0.74rem')}
       ${td('Rp' + Math.round(realTotalCost).toLocaleString('id-ID'), 'color:var(--green);font-weight:700;font-size:0.74rem')}
+      ${td('Rp' + Math.round(realTotalCost + realTotalTax).toLocaleString('id-ID'), 'color:var(--green);font-weight:700;font-size:0.74rem')}
     </div>`;
 }
 
@@ -1201,7 +1232,8 @@ function saveToStorage() {
     customRate,
     devices: DEVICES,
     billingConfig,
-    customPeriods
+    customPeriods,
+    taxRates
   }));
 }
 
@@ -1224,6 +1256,7 @@ function loadFromStorage() {
     }
     if (saved.billingConfig?.length === 12) billingConfig = saved.billingConfig;
     if (saved.customPeriods) customPeriods = saved.customPeriods;
+    if (saved.taxRates) taxRates = saved.taxRates;
   } catch(e) { console.warn('Gagal baca localStorage', e); }
 }
 
